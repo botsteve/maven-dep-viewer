@@ -1,12 +1,12 @@
 package com.botsteve.mavendepsearcher.components;
 
-import static com.botsteve.mavendepsearcher.utils.FxUtils.createBox;
+
 
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
-import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 
 public class ProgressBoxComponent {
 
@@ -22,14 +22,22 @@ public class ProgressBoxComponent {
     return progressBar;
   }
 
-  public HBox createProgressBox(ProgressBar progressBar, Label progressLabel, Scene scene) {
-    var progressBox = createBox(new HBox(10, progressBar, progressLabel), Pos.CENTER);
+  public VBox createProgressBox(ProgressBar progressBar, Label progressLabel, Scene scene) {
+    progressBar.getStyleClass().add("major-progress-bar");
+    progressLabel.getStyleClass().add("major-progress-label");
+    
+    progressBar.managedProperty().bind(progressBar.visibleProperty());
+    progressLabel.managedProperty().bind(progressLabel.visibleProperty());
+    
+    VBox progressBox = new VBox(5, progressLabel, progressBar);
+    progressBox.setAlignment(Pos.CENTER);
+    progressBox.setPadding(new javafx.geometry.Insets(10, 20, 10, 20));
     progressBox.setMaxWidth(Double.MAX_VALUE);
     progressBox.prefWidthProperty().bind(scene.widthProperty());
 
     progressBar.setMaxWidth(Double.MAX_VALUE);
-    progressBar.prefWidthProperty().bind(progressBox.widthProperty().multiply(0.8));
-    progressLabel.prefWidthProperty().bind(progressBox.widthProperty().multiply(0.2));
+    progressBar.setPrefHeight(20); // Clearly thicker
+    progressBar.prefWidthProperty().bind(progressBox.widthProperty().multiply(0.9));
     return progressBox;
   }
 }

@@ -285,3 +285,33 @@
 .root.dark-mode .hyperlink:hover {
     -fx-text-fill: #85c1e9;
 }
+
+.project-name-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #2980b9;
+    -fx-background-color: #e1f0fa;
+    -fx-padding: 2px 8px;
+    -fx-background-radius: 10px;
+}
+
+.root.dark-mode .project-name-label {
+    -fx-text-fill: #5dade2;
+    -fx-background-color: #34495e;
+}
+
+.major-progress-bar {
+    -fx-pref-height: 20px;
+}
+
+.major-progress-bar .bar {
+    -fx-background-color: linear-gradient(to right, #3498db, #5dade2);
+}
+
+.major-progress-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #34495e;
+}
+
+.root.dark-mode .major-progress-label {
+    -fx-text-fill: #ecf0f1;
+}

@@ -33,6 +33,7 @@ public class TableViewComponent {
   private final Set<String> selectedScopes = new LinkedHashSet<>();
   private final CheckBox selectAllCheckBox = new CheckBox("Select All");
   private final CheckBox cleanUpCheckBox = new CheckBox("Clean up existing repos");
+  private final Label projectNameLabel = new Label("No project loaded");
 
 
   public TableViewComponent() {
@@ -253,10 +254,14 @@ public class TableViewComponent {
     HBox scopeBox = new HBox(8, new Label("Scope:"), scopeFilterMenu);
     scopeBox.setAlignment(Pos.CENTER_LEFT);
     
+    HBox projectBox = new HBox(8, new Label("Project:"), projectNameLabel);
+    projectBox.setAlignment(Pos.CENTER_LEFT);
+    projectNameLabel.getStyleClass().add("project-name-label");
+    
     javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
     HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
     
-    box.getChildren().addAll(filterBox, scopeBox, spacer, statsLabel, selectAllCheckBox, cleanUpCheckBox);
+    box.getChildren().addAll(filterBox, scopeBox, projectBox, spacer, statsLabel, selectAllCheckBox, cleanUpCheckBox);
     return box;
   }
 }

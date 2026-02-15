@@ -142,6 +142,7 @@ public class ButtonsComponent {
           }
         }
         reset();
+        tableViewComponent.getProjectNameLabel().setText(selectedDirectory.getName());
         isTaskRunning.set(true);
         progressBar.setVisible(true);
         progressLabel.setVisible(true);
