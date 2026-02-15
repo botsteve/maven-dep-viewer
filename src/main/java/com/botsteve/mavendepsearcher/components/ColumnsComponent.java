@@ -15,10 +15,9 @@ public class ColumnsComponent {
   private final TableViewComponent tableViewComponent;
 
   public TreeTableColumn<DependencyNode, String> getBuildWithColumn() {
-    TreeTableColumn<DependencyNode, String> buildWithColumn = new TreeTableColumn<>("Build with");
+    TreeTableColumn<DependencyNode, String> buildWithColumn = new TreeTableColumn<>("Output");
     buildWithColumn.setCellValueFactory(param -> getSimpleStringProperty(param.getValue().getValue().getBuildWith()));
     buildWithColumn.setMinWidth(100);
-    buildWithColumn.setMaxWidth(100);
     return buildWithColumn;
   }
 
@@ -40,21 +39,7 @@ public class ColumnsComponent {
     selectColumn.setCellFactory(CheckBoxTreeTableCell.forTreeTableColumn(selectColumn));
     selectColumn.setMinWidth(50); // Set a fixed width for the checkbox column
     selectColumn.setMaxWidth(50);
-
-    // Prevent row selection when clicking checkbox
-    selectColumn.setCellFactory(tc -> {
-      CheckBoxTreeTableCell<DependencyNode, Boolean> cell = new CheckBoxTreeTableCell<>();
-      cell.addEventFilter(MouseEvent.MOUSE_PRESSED, (MouseEvent event) -> {
-        event.consume(); // Consume the event to prevent row selection
-        if (event.getClickCount() == 1) {
-          DependencyNode item = cell.getTreeTableRow().getItem();
-          if (item != null) {
-            item.setSelected(!item.isSelected()); // Toggle the checkbox
-          }
-        }
-      });
-      return cell;
-    });
+    selectColumn.setEditable(true);
     return selectColumn;
   }
 
@@ -84,18 +69,11 @@ public class ColumnsComponent {
                                          TreeTableColumn<DependencyNode, String> scmColumn,
                                          TreeTableColumn<DependencyNode, String> checkoutTagColumn,
                                          TreeTableColumn<DependencyNode, String> buildWithColumn) {
-    // Calculate remaining space (as an ObservableValue)
-    DoubleBinding remainingWidth = Bindings.createDoubleBinding(() -> {
-      double totalWidth = tableViewComponent.getTreeTableView().getWidth();
-      double checkboxWidth = selectColumn.getWidth();
-      double buildWithWidth = buildWithColumn.getWidth();
-
-      return Math.max(0, totalWidth - checkboxWidth - buildWithWidth);
-    }, tableViewComponent.getTreeTableView().widthProperty(), selectColumn.widthProperty());
-
-    // Bind each column to half of the remaining space
-    dependencyColumn.prefWidthProperty().bind(remainingWidth.divide(3));
-    scmColumn.prefWidthProperty().bind(remainingWidth.divide(3));
-    checkoutTagColumn.prefWidthProperty().bind(remainingWidth.divide(3));
+    // Set initial widths to distribute space roughly, but allow resizing
+    // Assuming visible width ~1000. 50 (select) + others.
+    dependencyColumn.setPrefWidth(250);
+    scmColumn.setPrefWidth(250);
+    checkoutTagColumn.setPrefWidth(200);
+    buildWithColumn.setPrefWidth(250);
   }
 }

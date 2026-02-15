@@ -15,16 +15,14 @@ public class ContextMenuComponent {
 
   private final TableViewComponent tableViewComponent;
 
-  public ContextMenu createContextMenu(TreeTableColumn<DependencyNode, String> dependencyColumn,
-                                       TreeTableColumn<DependencyNode, String> scmColumn) {
+  public ContextMenu createContextMenu() {
     ContextMenu contextMenu = new ContextMenu();
-    var copyMenuItem = createCopyContextMenuItem(dependencyColumn, scmColumn);
+    var copyMenuItem = createCopyContextMenuItem();
     contextMenu.getItems().add(copyMenuItem);
     return contextMenu;
   }
 
-  private MenuItem createCopyContextMenuItem(TreeTableColumn<DependencyNode, String> dependencyColumn,
-                                             TreeTableColumn<DependencyNode, String> scmColumn) {
+  private MenuItem createCopyContextMenuItem() {
     MenuItem copyMenuItem = new MenuItem("Copy");
 
     copyMenuItem.setOnAction(event -> {
@@ -32,15 +30,8 @@ public class ContextMenuComponent {
       if (pos != null) {
         TreeTableColumn<DependencyNode, ?> column = pos.getTableColumn();
         TreeItem<DependencyNode> treeItem = pos.getTreeItem();
-        String contentToCopy = "";
-
-        if (column == dependencyColumn) { // Directly compare with the column reference
-          contentToCopy = treeItem.getValue().getGroupId() + ":" +
-                          treeItem.getValue().getArtifactId() + ":" +
-                          treeItem.getValue().getVersion();
-        } else if (column == scmColumn) { // Directly compare with the column reference
-          contentToCopy = treeItem.getValue().getScmUrl();
-        }
+        Object cellData = column.getCellData(treeItem);
+        String contentToCopy = cellData != null ? cellData.toString() : "";
 
         ClipboardContent content = new ClipboardContent();
         content.putString(contentToCopy);

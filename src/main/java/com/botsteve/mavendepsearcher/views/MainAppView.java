@@ -44,6 +44,7 @@ public class MainAppView extends Application {
     var checkoutTagColumn = columnsComponent.getCheckoutTagColumn();
     var buildWithColumn = columnsComponent.getBuildWithColumn();
     treeTableView.getColumns().addAll(selectColumn, dependencyColumn, scmColumn, checkoutTagColumn, buildWithColumn);
+    treeTableView.setTreeColumn(dependencyColumn);
     columnsComponent.configureColumnsWidthStyle(selectColumn, dependencyColumn, scmColumn, checkoutTagColumn, buildWithColumn);
     checkBoxComponent.configureCheckBoxAction();
 
@@ -52,7 +53,7 @@ public class MainAppView extends Application {
     var progressBox = progressBoxComponent.createProgressBox(progressBar, progressLabel, scene);
     var toolBar = buttonsComponent.getToolBar(primaryStage, progressBar, progressLabel);
     var toolsBox = tableViewComponent.creatToolsBox();
-    var contextMenu = contextMenuComponent.createContextMenu(dependencyColumn, scmColumn);
+    var contextMenu = contextMenuComponent.createContextMenu();
     treeTableView.setContextMenu(contextMenu);
 
     VBox vbox = new VBox(10);

@@ -52,9 +52,10 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
   private final Label progressLabel;
   private String currentRepo;
   private Set<String> reposBuildSuccessfully = new HashSet<>();
-  private Map<String, String> reposBuildSuccessfullyToJavaVersion = new HashMap<>();
+  private Map<String, String> repoToBuildStatus = new HashMap<>(); // Renamed from reposBuildSuccessfullyToJavaVersion
   private Set<String> reposBuildFailed = new HashSet<>();
   private static String currentJavaVersionUsed;
+  private String currentCommandExecuted;
 
   @Override
   protected void failed() {
@@ -90,7 +91,7 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
     }
     
     buildProject(repositoriesPath);
-    return reposBuildSuccessfullyToJavaVersion;
+    return repoToBuildStatus;
   }
 
   private boolean isDownloadRepositoriesEmpty(String repositoriesPath) {
@@ -120,9 +121,10 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
           try {
             buildRepository(repo);
             reposBuildSuccessfully.add(currentRepo);
-            reposBuildSuccessfullyToJavaVersion.put(currentRepo, formatJavaVersion(currentJavaVersionUsed));
+            repoToBuildStatus.put(currentRepo, "Success: Built with " + formatJavaVersion(currentJavaVersionUsed) + " (Command: " + currentCommandExecuted + ")");
           } catch (Exception e) {
             reposBuildFailed.add(currentRepo);
+            repoToBuildStatus.put(currentRepo, "Failed: " + e.getMessage() + (currentCommandExecuted != null ? " (Command: " + currentCommandExecuted + ")" : ""));
           }
         }
       } else {
@@ -140,12 +142,15 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
       tryGradleBuildWithDifferentJdks(repo);
     } else if (new File(repo, "pom.xml").exists()) {
       tryMavenBuildWithDifferentJdks(repo);
+    } else if (new File(repo, "build.xml").exists()) {
+      tryAntBuildWithDifferentJdks(repo);
     } else {
       log.warn("No recognizable build file found in {}", repo.getName());
+      throw new DepViewerException("No recognizable build file (pom.xml, build.gradle, build.xml) found");
     }
   }
 
-  private static void tryMavenBuildWithDifferentJdks(File repo) {
+  private void tryMavenBuildWithDifferentJdks(File repo) {
     var jdks = new ArrayList<>(JDKS);
     if (runMavenBuildWithDetectedJavaVersion(repo, jdks)) return;
 
@@ -159,6 +164,7 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
         buildSuccessful = true;
         break;
       } catch (Exception e) {
+        if (isFatalError(e)) throw (RuntimeException) e;
         log.error(RETRY_WITH_LOWER_VERSION, currentJdkPath);
         currentJdkPath = getPropertyFromSetting(property);
       }
@@ -170,7 +176,7 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
     }
   }
 
-  private static boolean runMavenBuildWithDetectedJavaVersion(File repo, ArrayList<String> jdks) {
+  private boolean runMavenBuildWithDetectedJavaVersion(File repo, ArrayList<String> jdks) {
     var javaVersionMaven = getJavaVersionMaven(repo);
     var resolvedjdkPath = resolveJavaPathToBeUsed(javaVersionMaven);
     try {
@@ -178,6 +184,7 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
       currentJavaVersionUsed = resolveJavaVersionToEnvProperty(javaVersionMaven);
       return true;
     } catch (Exception e1) {
+      if (isFatalError(e1)) throw (RuntimeException) e1;
       log.error("Maven build failed with resolved java version: {}", resolvedjdkPath);
       if ("1.8".equals(javaVersionMaven) || "8".equals(javaVersionMaven)) {
         jdks.remove("JAVA8_HOME");
@@ -190,8 +197,7 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
     return false;
   }
 
-  private static void tryGradleBuildWithDifferentJdks(File repo) {
-
+  private void tryGradleBuildWithDifferentJdks(File repo) {
     String currentJdkPath = System.getenv(JAVA_HOME);
     boolean buildSuccessful = false;
 
@@ -203,6 +209,7 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
         currentJavaVersionUsed = property;
         break;
       } catch (Exception e) {
+        if (isFatalError(e)) throw (RuntimeException) e;
         log.error(RETRY_WITH_LOWER_VERSION, currentJdkPath);
         currentJdkPath = getPropertyFromSetting(property);
       }
@@ -214,14 +221,21 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
     }
   }
 
-  private static void runGradleBuild(File repo, String jdkPath, String[] command) throws IOException, InterruptedException {
+  private void runGradleBuild(File repo, String jdkPath, String[] command) throws IOException, InterruptedException {
+    currentCommandExecuted = String.join(" ", command);
     ProcessBuilder processBuilder = new ProcessBuilder(command);
     processBuilder.directory(repo);
     processBuilder.redirectErrorStream(true);
     processBuilder.environment().put(JAVA_HOME, jdkPath);
     log.info("Executing gradle build command: {} with JAVA_HOME: {}", processBuilder.command(), jdkPath);
 
-    Process process = processBuilder.start();
+    Process process;
+    try {
+        process = processBuilder.start();
+    } catch (IOException e) {
+        throw new DepViewerException("Failed to start Gradle command. Ensure '" + command[0] + "' exists and is executable.", e);
+    }
+
     try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
       String line;
       while ((line = reader.readLine()) != null) {
@@ -237,13 +251,81 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
     }
   }
 
+  private void tryAntBuildWithDifferentJdks(File repo) {
+    String currentJdkPath = System.getenv(JAVA_HOME);
+    boolean buildSuccessful = false;
 
-  private static void runMavenBuild(File repo, String jdkPath) {
+    for (String property : JDKS) {
+      try {
+        runAntBuild(repo, currentJdkPath);
+        buildSuccessful = true;
+        currentJavaVersionUsed = property;
+        break;
+      } catch (Exception e) {
+        if (isFatalError(e)) throw (RuntimeException) e;
+        log.error(RETRY_WITH_LOWER_VERSION, currentJdkPath);
+        currentJdkPath = getPropertyFromSetting(property);
+      }
+    }
+
+    if (!buildSuccessful) {
+      log.error(ALL_BUILDS_FAILED);
+      throw new DepViewerException(ALL_BUILDS_FAILED);
+    }
+  }
+  private boolean isFatalError(Exception e) {
+      String msg = e.getMessage();
+      if (msg == null) return false;
+      return msg.contains("MAVEN_HOME") || 
+             msg.contains("command not found") || 
+             msg.contains("executable not found") || 
+             msg.contains("is not set") ||
+             msg.contains("Please ensure");
+  }
+
+  private void runAntBuild(File repo, String jdkPath) throws IOException, InterruptedException {
+    String antCommand = IS_WINDOWS ? "ant.bat" : "ant";
+    currentCommandExecuted = antCommand; // Ant default target
+    ProcessBuilder processBuilder = new ProcessBuilder(antCommand); 
+    
+    processBuilder.directory(repo);
+    processBuilder.redirectErrorStream(true);
+    if (jdkPath != null && !jdkPath.isEmpty()) {
+        processBuilder.environment().put(JAVA_HOME, jdkPath);
+    }
+    
+    log.info("Executing Ant build command: {} with JAVA_HOME: {}", antCommand, jdkPath);
+
+    Process process;
     try {
+        process = processBuilder.start();
+    } catch (IOException e) {
+        throw new DepViewerException("Failed to start Ant command. Please ensure '" + antCommand + "' is installed and in your PATH.", e);
+    }
+
+    try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        log.info(line);
+      }
+    }
+
+    int exitCode = process.waitFor();
+    if (exitCode == 0) {
+      log.debug("Ant build successful for {}", repo.getName());
+    } else {
+      throw new DepViewerException(String.format("Ant build failed for %s", repo.getName()));
+    }
+  }
+
+  private void runMavenBuild(File repo, String jdkPath) {
+    try {
+      currentCommandExecuted = "mvn clean package";
       getMavenInvokerResult(repo.getAbsolutePath(), "", "clean package", MAVEN_OPTS, jdkPath);
     } catch (Exception e) {
       log.error("Building repository failed, retry with new file permissions", e);
       changeDirectoryPermissions(repo);
+      currentCommandExecuted = "mvn package";
       getMavenInvokerResult(repo.getAbsolutePath(), "", "package", MAVEN_OPTS, jdkPath);
     }
   }

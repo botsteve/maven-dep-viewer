@@ -28,13 +28,27 @@ public class MavenInvokerService {
     }
 
     // Set Maven executable and home
-    Invoker invoker = new DefaultInvoker();
-    invoker.setMavenHome(new File(System.getenv("MAVEN_HOME")));
-    
     String mavenHome = System.getenv("MAVEN_HOME");
+    if (mavenHome == null || mavenHome.isBlank()) {
+        throw new DepViewerException("MAVEN_HOME environment variable is not set. Please configure it to point to your Maven installation.");
+    }
+
+    File mavenHomeFile = new File(mavenHome);
+    if (!mavenHomeFile.exists() || !mavenHomeFile.isDirectory()) {
+         throw new DepViewerException("MAVEN_HOME path is invalid: " + mavenHome);
+    }
+
     String os = System.getProperty("os.name").toLowerCase();
-    String mvnExecutable = os.contains("win") ? "bin/mvn.cmd" : "bin/mvn";
-    invoker.setMavenExecutable(new File(mavenHome, mvnExecutable));
+    String mvnExecutableName = os.contains("win") ? "bin/mvn.cmd" : "bin/mvn";
+    File mavenExecutable = new File(mavenHomeFile, mvnExecutableName);
+
+    if (!mavenExecutable.exists()) {
+        throw new DepViewerException("Maven executable not found at: " + mavenExecutable.getAbsolutePath());
+    }
+
+    Invoker invoker = new DefaultInvoker();
+    invoker.setMavenHome(mavenHomeFile);
+    invoker.setMavenExecutable(mavenExecutable);
 
     InvocationRequest request = new DefaultInvocationRequest();
     request.setPomFile(new File(projectDir, moduleDir + "/pom.xml"));

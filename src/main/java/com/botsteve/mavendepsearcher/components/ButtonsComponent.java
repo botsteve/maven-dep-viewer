@@ -40,6 +40,7 @@ public class ButtonsComponent {
     downloadButton.disableProperty().bind(isTaskRunning);
     buildSelectedButton.disableProperty().bind(isTaskRunning);
     buildAggregatedLicenseButton.disableProperty().bind(isTaskRunning);
+    tableViewComponent.getCleanUpCheckBox().disableProperty().bind(isTaskRunning);
     
     return new ToolBar(openButton, downloadButton, buildSelectedButton, buildAggregatedLicenseButton);
   }
@@ -90,7 +91,7 @@ public class ButtonsComponent {
         return;
       }
       isTaskRunning.set(true);
-      DependencyDownloaderTask task = new DependencyDownloaderTask(urlToVersion, progressBar, progressLabel);
+      DependencyDownloaderTask task = new DependencyDownloaderTask(urlToVersion, progressBar, progressLabel, tableViewComponent.getCleanUpCheckBox().isSelected());
       task.setOnSucceeded(workerStateEvent -> {
         isTaskRunning.set(false);
         isDownloaded.set(true);

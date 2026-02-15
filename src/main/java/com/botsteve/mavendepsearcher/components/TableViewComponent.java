@@ -26,14 +26,18 @@ public class TableViewComponent {
   private final Label statsLabel = new Label("Dependencies: 0");
   private final TextField filterInput = new TextField();
   private final CheckBox selectAllCheckBox = new CheckBox("Select All");
+  private final CheckBox cleanUpCheckBox = new CheckBox("Clean up existing repos");
 
 
   public TableViewComponent() {
     treeTableView.setShowRoot(false);
+    treeTableView.setColumnResizePolicy(TreeTableView.CONSTRAINED_RESIZE_POLICY);
+    treeTableView.setEditable(true);
     filterInput.setPromptText("Exclude dependencies...");
     filterInput.textProperty().addListener((observable, oldValue, newValue) -> {
       updateTreeViewWithFilteredDependencies(newValue);
     });
+    cleanUpCheckBox.setSelected(false);
   }
 
   public void updateTreeViewWithFilteredDependencies(String newValue) {
@@ -109,6 +113,6 @@ public class TableViewComponent {
   }
 
   public HBox creatToolsBox() {
-    return createBox(new HBox(10, filterLabel, filterInput, statsLabel, selectAllCheckBox), Pos.CENTER_LEFT);
+    return createBox(new HBox(10, filterLabel, filterInput, statsLabel, selectAllCheckBox, cleanUpCheckBox), Pos.CENTER_LEFT);
   }
 }

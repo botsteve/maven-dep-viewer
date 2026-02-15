@@ -27,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.transport.TagOpt;
 import com.botsteve.mavendepsearcher.utils.ForceDeleteUtil;
 
 @Slf4j
@@ -36,8 +37,9 @@ public class DependencyDownloaderTask extends Task<Map<String, String>> {
   private final Map<String, String> scmToVersionRepos;
   private final ProgressBar progressBar;
   private final Label progressLabel;
+  private final boolean cleanUp;
   private Map.Entry<String, String> currentRepo;
-  private final Map<String, String> repoToCheckoutTag = new HashMap<>();
+  private final java.util.concurrent.ConcurrentHashMap<String, String> repoToCheckoutTag = new java.util.concurrent.ConcurrentHashMap<>();
 
 
   @Override
@@ -46,11 +48,7 @@ public class DependencyDownloaderTask extends Task<Map<String, String>> {
     Throwable exception = getException();
     if (exception != null) {
       log.error(exception.getMessage(), exception);
-      var errorMessage = getProxyExceptionMessage(currentRepo, exception);
-      if (exception instanceof AccessDeniedException e) {
-        errorMessage = e.getMessage();
-      }
-      getErrorAlertAndCloseProgressBar(errorMessage, progressBar, progressLabel);
+      getErrorAlertAndCloseProgressBar("Failed to download dependencies. Check logs for details: " + exception.getMessage(), progressBar, progressLabel);
     }
   }
 
@@ -62,32 +60,66 @@ public class DependencyDownloaderTask extends Task<Map<String, String>> {
   }
 
   @Override
-  protected Map<String, String> call() throws URISyntaxException, IOException, GitAPIException {
+  protected Map<String, String> call() {
     updateProgressBarAndLabel("Cleaning up previous downloaded repositories", progressBar, progressLabel);
-    cleanUpDownloadedDependencies();
-    for (Map.Entry<String, String> versionScm : scmToVersionRepos.entrySet()) {
-      Platform.runLater(() -> progressLabel.setText("Downloading: " + getRepoNameFromUrl(versionScm.getKey())));
-      currentRepo = versionScm;
-      File localRepoDir = new File(getRepositoriesPath() + getRepoNameFromUrl(versionScm.getKey()));
-      configureProxyIfEnvAvailable();
-      try (
-          Git git = Git.cloneRepository()
-                        .setURI(versionScm.getKey())
-                        .setDirectory(localRepoDir)
-                        .setCloneAllBranches(true)
-                        .setDepth(1)  // Limit to the latest commit
-                        .call()
-      ) {
-        // The repository has been cloned successfully
-        log.info("Repository cloned successfully: {}", versionScm.getKey());
-      } catch (GitAPIException e) {
-        log.error("Failed to clone repository: {}", versionScm.getKey(), e);
-        throw e;
-      }
-
-      var checkoutTag = checkoutTag(localRepoDir, versionScm.getValue());
-      repoToCheckoutTag.put(getRepoNameFromUrl(versionScm.getKey()), checkoutTag.replace("refs/tags/", ""));
+    if (cleanUp) {
+        try {
+            cleanUpDownloadedDependencies();
+        } catch (Exception e) {
+            log.error("Cleanup failed", e);
+            throw new RuntimeException("Failed to clean up repositories", e);
+        }
     }
+    
+    scmToVersionRepos.entrySet().parallelStream().forEach(versionScm -> {
+      try {
+          Platform.runLater(() -> progressLabel.setText("Downloading: " + getRepoNameFromUrl(versionScm.getKey())));
+          
+          File localRepoDir = new File(getRepositoriesPath(), getRepoNameFromUrl(versionScm.getKey()));
+          configureProxyIfEnvAvailable();
+          
+          boolean repoReady = false;
+          if (!cleanUp && localRepoDir.exists() && new File(localRepoDir, ".git").exists()) {
+               try (Git git = Git.open(localRepoDir)) {
+                    log.info("Updating existing repository: {}", versionScm.getKey());
+                    git.fetch().setTagOpt(TagOpt.FETCH_TAGS).call();
+                    repoReady = true;
+               } catch (Exception e) {
+                    log.warn("Failed to reuse repository {}: {}", localRepoDir, e.getMessage());
+                    try {
+                        ForceDeleteUtil.forceDeleteDirectory(localRepoDir.toPath());
+                    } catch (IOException ex) {
+                        throw new RuntimeException("Failed to clear directory for clone", ex);
+                    }
+               }
+          } else if (localRepoDir.exists()) {
+               try {
+                   ForceDeleteUtil.forceDeleteDirectory(localRepoDir.toPath());
+               } catch (IOException e) {
+                   throw new RuntimeException("Failed to clear directory for clone", e);
+               }
+          }
+
+          if (!repoReady) {
+               try (Git git = Git.cloneRepository()
+                         .setURI(versionScm.getKey())
+                         .setDirectory(localRepoDir)
+                         .setCloneAllBranches(true)
+                         .setDepth(1)
+                         .call()) {
+                   log.info("Repository cloned successfully: {}", versionScm.getKey());
+               }
+          }
+          
+          var checkoutTagStr = checkoutTag(localRepoDir, versionScm.getValue());
+          repoToCheckoutTag.put(getRepoNameFromUrl(versionScm.getKey()), checkoutTagStr.replace("refs/tags/", ""));
+
+      } catch (Exception e) {
+        log.error("Failed to clone/checkout repository: {}", versionScm.getKey(), e);
+        throw new RuntimeException("Failed to clone " + versionScm.getKey(), e);
+      }
+    });
+
     return repoToCheckoutTag;
   }
 
