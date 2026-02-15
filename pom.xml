@@ -17,6 +17,7 @@
         <javafx.version>21.0.3</javafx.version>
         <junit.version>5.10.2</junit.version>
         <mockito.version>5.11.0</mockito.version>
+        <native.maven.plugin.version>0.10.4</native.maven.plugin.version>
     </properties>
 
     <dependencies>
@@ -188,4 +189,37 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.gluonhq</groupId>
+                        <artifactId>gluonfx-maven-plugin</artifactId>
+                        <version>1.0.28</version>
+                        <configuration>
+                            <mainClass>com.botsteve.mavendepsearcher.Launcher</mainClass>
+                            <nativeImageArgs>
+                                <arg>--no-fallback</arg>
+                                <arg>--install-exit-handlers</arg>
+                                <arg>--enable-http</arg>
+                                <arg>--enable-https</arg>
+                                <arg>-H:+AddAllCharsets</arg>
+                            </nativeImageArgs>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

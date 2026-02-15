@@ -25,7 +25,7 @@ import static com.botsteve.mavendepsearcher.utils.FxUtils.showError;
 @Slf4j
 public class Utils {
 
-    public static final String DOWNLOADED_REPOS = "download_repo";
+    public static final String DOWNLOADED_REPOS = "downloaded_repos";
     public static final String SETTINGS_FILE_PATH = "env-settings.properties";
 
     public static List<String> parseModulesFromPom(File pomFile) throws Exception {

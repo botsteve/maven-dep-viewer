@@ -18,7 +18,11 @@ A powerful JavaFX desktop application for analyzing **Maven** and **Gradle** pro
 - **Cross-Version Building**: Automatically builds dependencies using the correct JDK version (Java 8, 11, 17, 21) via Maven Toolchains or Gradle Wrapper.
 - **Smart JDK Detection (Gradle)**: Reads the Gradle Wrapper version from `gradle-wrapper.properties` and selects the compatible JDK automatically — no manual configuration needed.
 - **Verbose Build Logging**: All build tool invocations (Maven `-X`, Gradle `--info`, Ant `-verbose`) produce detailed output for troubleshooting.
-- **Task Management**: Visual feedback with progress bars; prevents conflicting operations from running simultaneously.
+- **Improved UI & Task Visibility**: 
+  - **Project Context**: Displays the currently opened project name in the toolbar for quick reference.
+  - **Redesigned Loading State**: A prominent, thick, blue-gradient progress bar with vertically stacked status messages for better readability.
+  - **Space Recovery**: UI automatically collapses the progress area when tasks finish to maximize table space.
+- **Task Management**: Prevents conflicting operations (e.g., building while downloading) from running simultaneously.
 - **Cross-Platform**: Runs on Windows, macOS, and Linux as a single executable JAR.
 
 ---
@@ -59,6 +63,21 @@ A powerful JavaFX desktop application for analyzing **Maven** and **Gradle** pro
 ```bash
 java -jar target/maven-dep-searcher-1.0-SNAPSHOT.jar
 ```
+
+### 🛠️ Building a Native Image (GraalVM)
+
+You can build a standalone native executable that doesn't require a JVM to run.
+
+**Prerequisites:**
+1. **GraalVM JDK 21+** installed.
+2. `native-image` tool installed (`gu install native-image`).
+
+**Build command:**
+```bash
+mvn clean gluonfx:build -Pnative
+```
+
+The native executable will be generated in `target/gluonfx/<platform>/` (e.g., `target/gluonfx/desktop/maven-dep-searcher`).
 
 > **Windows**: You may also double-click the JAR file if `.jar` is associated with Java 21.
 
@@ -206,9 +225,7 @@ The tool parses the project and displays the dependency tree with columns:
 - **Scope filter**: Use the "Scope" dropdown to show only dependencies of a specific scope (e.g., only `compile` or only `test`).
 - **Select All**: Check the "Select All" checkbox to select/deselect all visible dependencies.
 
-### 3. Download Source
-
-Click **Download Selected**. The tool clones the SCM repositories for the selected dependencies into the `downloaded_repos` folder (relative to the JAR location).
+Click **Download Selected**. The tool clones the SCM repositories for the selected dependencies into the `downloaded_repos/<project_name>/` folder (relative to the JAR location). This keeps source code organized even when working with multiple different projects.
 
 ### 4. Build
 

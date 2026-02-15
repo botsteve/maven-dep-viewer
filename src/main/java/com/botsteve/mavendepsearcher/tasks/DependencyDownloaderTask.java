@@ -131,7 +131,7 @@ public class DependencyDownloaderTask extends Task<Map<String, String>> {
             } catch (IOException e) {
               log.error("Failed to delete directory: {}", path, e);
               throw new RuntimeException(
-                  "Cleanup process stopped due to error. If this persists try to delete the download_repo directory manually",
+                  "Cleanup process stopped due to error. If this persists try to delete the downloaded_repos directory manually",
                   e);
             }
           });
