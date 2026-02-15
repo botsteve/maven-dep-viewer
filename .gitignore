@@ -144,3 +144,4 @@ fabric.properties
 downloaded_repos/
 env-settings.properties
 .DS_Store
+dependency-reduced-pom.xml

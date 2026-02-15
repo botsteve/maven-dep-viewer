@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import com.botsteve.mavendepsearcher.model.DependencyNode;
 import com.botsteve.mavendepsearcher.model.ProjectType;
 import com.botsteve.mavendepsearcher.service.DependencyAnalyzerService;
-import com.botsteve.mavendepsearcher.service.GradleScmUrlFetcherService;
+import com.botsteve.mavendepsearcher.service.ScmEnrichmentService;
 import com.botsteve.mavendepsearcher.service.ScmUrlFetcherService;
 
 @Slf4j
@@ -37,14 +37,18 @@ public class DependencyLoadingTask extends Task<Set<DependencyNode>> {
     Platform.runLater(() -> progressLabel.setText("Loading dependencies..."));
     var dependencies = DependencyAnalyzerService.getDependencies(projectDir);
 
-    Platform.runLater(() -> progressLabel.setText("Fetching SCM URLs..."));
+    Platform.runLater(() -> progressLabel.setText("Fetching and Enriching SCM URLs..."));
     ProjectType projectType = DependencyAnalyzerService.getProjectType(projectDir);
+    
+    // 1. Initial tool-based scan (Maven/Gradle plugins)
     if (projectType == ProjectType.MAVEN) {
       ScmUrlFetcherService.fetchScmUrls(projectDir, dependencies);
-    } else {
-      // For Gradle projects, fetch SCM URLs from Maven Central POMs
-      GradleScmUrlFetcherService.fetchScmUrls(dependencies);
-    }
+    } 
+    
+    // 2. Unified Remote Enrichment (The "Fill the Gaps" fallback)
+    // This now runs for BOTH Maven and Gradle to catch missing info from Parent POMs or Maven Central
+    ScmEnrichmentService.fetchScmUrls(dependencies);
+    
     return dependencies;
   }
 

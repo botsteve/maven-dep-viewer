@@ -53,7 +53,7 @@ public class ScmUrlFetcherService {
         }
         
         String key = groupId + ":" + artifactId + ":" + version;
-        vcsUrlMap.put(key, fixNonResolvableScmRepositorise(convertSCM(vcsUrl), artifactId));
+        vcsUrlMap.put(key, fixNonResolvableScmRepositorise(ScmEnrichmentService.convertSCM(vcsUrl), artifactId));
       }
     }
 
@@ -72,24 +72,4 @@ public class ScmUrlFetcherService {
     }
   }
 
-  public static String convertSCM(String scmUrl) {
-    String httpsUrl = scmUrl;
-    if (httpsUrl.startsWith("git://")) {
-      httpsUrl = scmUrl.replace("git://", "https://");
-      int index = httpsUrl.indexOf(".git/");
-      if (index != -1) {
-        httpsUrl = httpsUrl.substring(0, index + 4);
-      }
-    }
-    if (httpsUrl.startsWith("https://") && httpsUrl.split("\\.git").length > 1) {
-      httpsUrl = httpsUrl.split("\\.git")[0];
-    }
-    if (scmUrl.startsWith("scm:git:")) {
-      httpsUrl = scmUrl.substring("scm:git:".length());
-    }
-    if (httpsUrl.startsWith("git@github.com:")) {
-      httpsUrl = httpsUrl.replace("git@github.com:", "https://github.com/");
-    }
-    return httpsUrl;
-  }
 }

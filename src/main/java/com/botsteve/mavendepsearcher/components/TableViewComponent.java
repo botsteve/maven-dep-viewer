@@ -3,14 +3,16 @@ package com.botsteve.mavendepsearcher.components;
 import static com.botsteve.mavendepsearcher.utils.FxUtils.createBox;
 
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.TreeSet;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
 import javafx.geometry.Pos;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.ComboBox;
+import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuButton;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeTableView;
@@ -28,7 +30,8 @@ public class TableViewComponent {
   private final Label filterLabel = new Label("Exclude:");
   private final Label statsLabel = new Label("Dependencies: 0");
   private final TextField filterInput = new TextField();
-  private final ComboBox<String> scopeFilter = new ComboBox<>();
+  private final MenuButton scopeFilterMenu = new MenuButton(ALL_SCOPES);
+  private final Set<String> selectedScopes = new LinkedHashSet<>();
   private final CheckBox selectAllCheckBox = new CheckBox("Select All");
   private final CheckBox cleanUpCheckBox = new CheckBox("Clean up existing repos");
 
@@ -41,9 +44,7 @@ public class TableViewComponent {
     filterInput.textProperty().addListener((observable, oldValue, newValue) -> {
       applyFilters();
     });
-    scopeFilter.getItems().add(ALL_SCOPES);
-    scopeFilter.setValue(ALL_SCOPES);
-    scopeFilter.setOnAction(event -> applyFilters());
+    scopeFilterMenu.setMinWidth(120);
     cleanUpCheckBox.setSelected(false);
   }
 
@@ -53,8 +54,7 @@ public class TableViewComponent {
   public void applyFilters() {
     if (this.allDependencies != null) {
       String filterText = filterInput.getText();
-      String selectedScope = scopeFilter.getValue();
-      Set<DependencyNode> filteredDependencies = filterDependencies(filterText, selectedScope);
+      Set<DependencyNode> filteredDependencies = filterDependencies(filterText, selectedScopes);
       updateTreeView(filteredDependencies);
     }
   }
@@ -63,10 +63,10 @@ public class TableViewComponent {
     applyFilters();
   }
 
-  public Set<DependencyNode> filterDependencies(String filterText, String selectedScope) {
+  public Set<DependencyNode> filterDependencies(String filterText, Set<String> scopes) {
     Set<DependencyNode> filteredDependencies = new HashSet<>();
     for (DependencyNode node : allDependencies) {
-      if (isTextMatchingFilter(node, filterText) && isScopeMatchingFilter(node, selectedScope)) {
+      if (isTextMatchingFilter(node, filterText) && isScopeMatchingFilter(node, scopes)) {
         filteredDependencies.add(node);
       }
     }
@@ -81,12 +81,12 @@ public class TableViewComponent {
     return !dependencyText.toLowerCase().contains(filterText.toLowerCase());
   }
 
-  private boolean isScopeMatchingFilter(DependencyNode node, String selectedScope) {
-    if (selectedScope == null || ALL_SCOPES.equals(selectedScope)) {
-      return true;
+  private boolean isScopeMatchingFilter(DependencyNode node, Set<String> scopes) {
+    if (scopes == null || scopes.isEmpty()) {
+      return true; // No scopes selected = show all
     }
     String nodeScope = node.getScope();
-    return selectedScope.equals(nodeScope);
+    return nodeScope != null && scopes.contains(nodeScope);
   }
 
   public void setAllDependencies(ObservableSet<DependencyNode> allDependencies) {
@@ -107,15 +107,66 @@ public class TableViewComponent {
   }
 
   /**
-   * Populates the scope filter dropdown with all unique scopes from the loaded dependencies.
+   * Populates the scope filter MenuButton with CheckMenuItems for each unique scope.
    */
   private void populateScopeFilter(Set<DependencyNode> dependencies) {
     Set<String> scopes = new TreeSet<>(); // TreeSet for alphabetical ordering
     collectScopes(dependencies, scopes);
-    scopeFilter.getItems().clear();
-    scopeFilter.getItems().add(ALL_SCOPES);
-    scopeFilter.getItems().addAll(scopes);
-    scopeFilter.setValue(ALL_SCOPES);
+
+    scopeFilterMenu.getItems().clear();
+    selectedScopes.clear();
+
+    // Add "All Scopes" toggle item
+    CheckMenuItem allItem = new CheckMenuItem(ALL_SCOPES);
+    allItem.setSelected(true);
+    allItem.setOnAction(event -> {
+      if (allItem.isSelected()) {
+        // Deselect all individual scope items
+        selectedScopes.clear();
+        scopeFilterMenu.getItems().stream()
+            .filter(item -> item instanceof CheckMenuItem && !ALL_SCOPES.equals(item.getText()))
+            .forEach(item -> ((CheckMenuItem) item).setSelected(false));
+      }
+      updateScopeButtonText();
+      applyFilters();
+    });
+    scopeFilterMenu.getItems().add(allItem);
+
+    // Add individual scope items
+    for (String scope : scopes) {
+      CheckMenuItem item = new CheckMenuItem(scope);
+      item.setOnAction(event -> {
+        if (item.isSelected()) {
+          selectedScopes.add(scope);
+          // Uncheck "All Scopes" when a specific scope is selected
+          allItem.setSelected(false);
+        } else {
+          selectedScopes.remove(scope);
+          // If nothing is selected, re-check "All Scopes"
+          if (selectedScopes.isEmpty()) {
+            allItem.setSelected(true);
+          }
+        }
+        updateScopeButtonText();
+        applyFilters();
+      });
+      scopeFilterMenu.getItems().add(item);
+    }
+
+    updateScopeButtonText();
+  }
+
+  /**
+   * Updates the MenuButton label to reflect the current selection.
+   */
+  private void updateScopeButtonText() {
+    if (selectedScopes.isEmpty()) {
+      scopeFilterMenu.setText(ALL_SCOPES);
+    } else if (selectedScopes.size() == 1) {
+      scopeFilterMenu.setText(selectedScopes.iterator().next());
+    } else {
+      scopeFilterMenu.setText(selectedScopes.size() + " scopes");
+    }
   }
 
   /**
@@ -134,8 +185,10 @@ public class TableViewComponent {
 
   public void updateTreeView(Set<DependencyNode> dependencies) {
     TreeItem<DependencyNode> rootItem = createRootTreeItem();
+    rootItem.setExpanded(true);
     populateTreeItems(rootItem, dependencies);
     treeTableView.setRoot(rootItem);
+    treeTableView.refresh();
     statsLabel.setText("Dependencies: " + dependencies.size());
   }
 
@@ -164,6 +217,6 @@ public class TableViewComponent {
   }
 
   public HBox creatToolsBox() {
-    return createBox(new HBox(10, filterLabel, filterInput, new Label("Scope:"), scopeFilter, statsLabel, selectAllCheckBox, cleanUpCheckBox), Pos.CENTER_LEFT);
+    return createBox(new HBox(10, filterLabel, filterInput, new Label("Scope:"), scopeFilterMenu, statsLabel, selectAllCheckBox, cleanUpCheckBox), Pos.CENTER_LEFT);
   }
 }
