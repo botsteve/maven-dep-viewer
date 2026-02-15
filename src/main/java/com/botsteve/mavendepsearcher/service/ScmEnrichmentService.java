@@ -25,30 +25,52 @@ public class ScmEnrichmentService {
 
   private static final String MAVEN_CENTRAL_BASE = "https://repo1.maven.org/maven2";
 
+  private static final java.util.concurrent.ConcurrentHashMap<String, String> RESOLVED_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+
   /**
    * Fetches SCM URLs for all dependencies that don't already have one.
+   * Uses parallel processing and caching for performance.
    */
   public static void fetchScmUrls(Set<DependencyNode> dependencies) {
-    for (DependencyNode node : dependencies) {
-      if (shouldFetch(node)) {
-        try {
-          String scmUrl = resolveScmUrl(node.getGroupId(), node.getArtifactId(), node.getVersion(), 0);
-          if (scmUrl != null && !scmUrl.isEmpty()) {
-            node.setScmUrl(convertSCM(fixNonResolvableScmRepositorise(scmUrl, node.getArtifactId())
-            ));
-          } else {
-            node.setScmUrl("SCM URL not found");
-          }
-        } catch (Exception e) {
-          log.info("Failed to resolve SCM URL for {}:{}:{}: {}",
-                    node.getGroupId(), node.getArtifactId(), node.getVersion(), e.getMessage());
-          node.setScmUrl("SCM URL not found");
-        }
-      }
+    Set<DependencyNode> allNodes = new HashSet<>();
+    collectAllNodes(dependencies, allNodes);
 
-      // Always process children to ensure deep enrichment
-      if (node.getChildren() != null && !node.getChildren().isEmpty()) {
-        fetchScmUrls(new HashSet<>(node.getChildren()));
+    // Filter nodes that actually need a fetch
+    Set<DependencyNode> nodesToFetch = allNodes.stream()
+        .filter(ScmEnrichmentService::shouldFetch)
+        .collect(java.util.stream.Collectors.toSet());
+
+    if (nodesToFetch.isEmpty()) return;
+
+    log.info("Enriching {} unique dependencies in parallel...", nodesToFetch.size());
+
+    // Use parallel stream for network/IO-bound lookups
+    nodesToFetch.parallelStream().forEach(node -> {
+      String key = String.format("%s:%s:%s", node.getGroupId(), node.getArtifactId(), node.getVersion());
+      
+      // Use cache to avoid re-resolving the same GAV multiple times
+      String scmUrl = RESOLVED_CACHE.computeIfAbsent(key, k -> {
+        try {
+          String resolved = resolveScmUrl(node.getGroupId(), node.getArtifactId(), node.getVersion(), 0);
+          return (resolved != null && !resolved.isEmpty()) ? resolved : "NOT_FOUND";
+        } catch (Exception e) {
+          return "NOT_FOUND";
+        }
+      });
+
+      if (!"NOT_FOUND".equals(scmUrl)) {
+        node.setScmUrl(convertSCM(fixNonResolvableScmRepositorise(scmUrl, node.getArtifactId())));
+      } else {
+        node.setScmUrl("SCM URL not found");
+      }
+    });
+  }
+
+  private static void collectAllNodes(Set<DependencyNode> nodes, Set<DependencyNode> accumulator) {
+    if (nodes == null) return;
+    for (DependencyNode node : nodes) {
+      if (accumulator.add(node)) {
+        collectAllNodes(node.getChildren() == null ? null : new HashSet<>(node.getChildren()), accumulator);
       }
     }
   }

@@ -58,6 +58,7 @@ public class GradleDependencyAnalyzerService {
       "runtimeOnly", "runtimeClasspath", "compileClasspath",
       "testImplementation", "testCompileOnly", "testRuntimeOnly",
       "testRuntimeClasspath", "testCompileClasspath",
+      "testFixturesImplementation", "testFixturesApi", "testFixturesCompileClasspath", "testFixturesRuntimeClasspath",
       "annotationProcessor", "testAnnotationProcessor"
   );
 
@@ -608,10 +609,10 @@ public class GradleDependencyAnalyzerService {
   // ==========================================================================
 
   private static String findGradleExecutable(File projectDir) {
-    String wrapperName = IS_WINDOWS ? "gradlew.bat" : "./gradlew";
-    File wrapper = new File(projectDir, IS_WINDOWS ? "gradlew.bat" : "gradlew");
-    if (wrapper.exists() && wrapper.canExecute()) {
-      return wrapperName;
+    String wrapperName = IS_WINDOWS ? "gradlew.bat" : "gradlew";
+    File wrapper = new File(projectDir, wrapperName);
+    if (wrapper.exists()) {
+      return wrapper.getAbsolutePath();
     }
     return IS_WINDOWS ? "gradle.bat" : "gradle";
   }

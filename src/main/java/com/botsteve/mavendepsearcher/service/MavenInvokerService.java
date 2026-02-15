@@ -1,7 +1,6 @@
 package com.botsteve.mavendepsearcher.service;
 
 import java.io.File;
-import java.net.URISyntaxException;
 import java.util.Arrays;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
@@ -29,6 +28,11 @@ public class MavenInvokerService {
 
     // Set Maven executable and home
     String mavenHome = System.getenv("MAVEN_HOME");
+    if (mavenHome == null || mavenHome.isBlank()) {
+        log.info("MAVEN_HOME not set, attempting to detect maven from PATH or common locations...");
+        mavenHome = detectMavenHome();
+    }
+
     if (mavenHome == null || mavenHome.isBlank()) {
         throw new DepViewerException("MAVEN_HOME environment variable is not set. Please configure it to point to your Maven installation.");
     }
@@ -86,5 +90,43 @@ public class MavenInvokerService {
 
 
     return outputHandler;
+  }
+
+  private static String detectMavenHome() {
+    // 1. Check if 'mvn' is in the PATH
+    String path = System.getenv("PATH");
+    if (path != null) {
+      String separator = File.pathSeparator;
+      String[] dirs = path.split(separator);
+      for (String dir : dirs) {
+        File mvn = new File(dir, System.getProperty("os.name").toLowerCase().contains("win") ? "mvn.cmd" : "mvn");
+        if (mvn.exists()) {
+          // mavenHome is usually the parent of 'bin'
+          File binDir = mvn.getParentFile();
+          if (binDir != null && binDir.getName().equals("bin")) {
+            return binDir.getParent();
+          }
+        }
+      }
+    }
+
+    // 2. Check SDKMAN locations (common on Unix)
+    String userHome = System.getProperty("user.home");
+    File sdkmanMaven = new File(userHome, ".sdkman/candidates/maven/current");
+    if (sdkmanMaven.exists() && sdkmanMaven.isDirectory()) {
+      return sdkmanMaven.getAbsolutePath();
+    }
+
+    // 3. Check common Brew locations
+    File brewMaven = new File("/usr/local/opt/maven/libexec");
+    if (brewMaven.exists() && brewMaven.isDirectory()) {
+      return brewMaven.getAbsolutePath();
+    }
+    File brewMavenArm = new File("/opt/homebrew/opt/maven/libexec");
+    if (brewMavenArm.exists() && brewMavenArm.isDirectory()) {
+      return brewMavenArm.getAbsolutePath();
+    }
+
+    return null;
   }
 }
