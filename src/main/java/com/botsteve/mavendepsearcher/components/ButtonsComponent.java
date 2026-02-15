@@ -58,7 +58,7 @@ public class ButtonsComponent {
         return;
       }
       isTaskRunning.set(true);
-      BuildRepositoriesTask task = new BuildRepositoriesTask(progressBar, progressLabel);
+      BuildRepositoriesTask task = new BuildRepositoriesTask(progressBar, progressLabel, tableViewComponent.getProjectName());
       task.setOnSucceeded(workerStateEvent -> {
         isTaskRunning.set(false);
         var successfulBuiltReposToJavaVersion = task.getValue();
@@ -91,7 +91,7 @@ public class ButtonsComponent {
         return;
       }
       isTaskRunning.set(true);
-      DependencyDownloaderTask task = new DependencyDownloaderTask(urlToVersion, progressBar, progressLabel, tableViewComponent.getCleanUpCheckBox().isSelected());
+      DependencyDownloaderTask task = new DependencyDownloaderTask(urlToVersion, progressBar, progressLabel, tableViewComponent.getCleanUpCheckBox().isSelected(), tableViewComponent.getProjectName());
       task.setOnSucceeded(workerStateEvent -> {
         isTaskRunning.set(false);
         isDownloaded.set(true);
@@ -143,6 +143,7 @@ public class ButtonsComponent {
         }
         reset();
         tableViewComponent.getProjectNameLabel().setText(selectedDirectory.getName());
+        tableViewComponent.setProjectName(selectedDirectory.getName());
         isTaskRunning.set(true);
         progressBar.setVisible(true);
         progressLabel.setVisible(true);

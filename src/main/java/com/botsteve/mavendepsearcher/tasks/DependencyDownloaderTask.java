@@ -33,6 +33,7 @@ public class DependencyDownloaderTask extends Task<Map<String, String>> {
   private final ProgressBar progressBar;
   private final Label progressLabel;
   private final boolean cleanUp;
+  private final String projectName;
   private final java.util.concurrent.ConcurrentHashMap<String, String> repoToCheckoutTag = new java.util.concurrent.ConcurrentHashMap<>();
 
 
@@ -69,7 +70,7 @@ public class DependencyDownloaderTask extends Task<Map<String, String>> {
       try {
           Platform.runLater(() -> progressLabel.setText("Downloading: " + getRepoNameFromUrl(versionScm.getKey())));
           
-          File localRepoDir = new File(getRepositoriesPath(), getRepoNameFromUrl(versionScm.getKey()));
+          File localRepoDir = new File(getRepositoriesPath(projectName), getRepoNameFromUrl(versionScm.getKey()));
           configureProxyIfEnvAvailable();
           
           boolean repoReady = false;
@@ -118,7 +119,7 @@ public class DependencyDownloaderTask extends Task<Map<String, String>> {
   }
 
   private void cleanUpDownloadedDependencies() throws IOException {
-    Path dir = Paths.get(getRepositoriesPath());
+    Path dir = Paths.get(getRepositoriesPath(projectName));
     if (!Files.exists(dir)) return;
 
     try (Stream<Path> paths = Files.list(dir)) {
@@ -130,7 +131,7 @@ public class DependencyDownloaderTask extends Task<Map<String, String>> {
             } catch (IOException e) {
               log.error("Failed to delete directory: {}", path, e);
               throw new RuntimeException(
-                  "Cleanup process stopped due to error. If this persists try to delete the downloaded_repos directory manually",
+                  "Cleanup process stopped due to error. If this persists try to delete the download_repo directory manually",
                   e);
             }
           });

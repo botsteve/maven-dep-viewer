@@ -25,7 +25,7 @@ import static com.botsteve.mavendepsearcher.utils.FxUtils.showError;
 @Slf4j
 public class Utils {
 
-    public static final String DOWNLOADED_REPOS = "downloaded_repos";
+    public static final String DOWNLOADED_REPOS = "download_repo";
     public static final String SETTINGS_FILE_PATH = "env-settings.properties";
 
     public static List<String> parseModulesFromPom(File pomFile) throws Exception {
@@ -146,7 +146,7 @@ public class Utils {
         }
     }
 
-    public static String getRepositoriesPath() {
+    public static String getRepositoriesPath(String projectName) {
         try {
             Path codeSourcePath = Paths.get(Utils.class.getProtectionDomain().getCodeSource().getLocation().toURI());
             Path baseDir;
@@ -160,6 +160,10 @@ public class Utils {
             }
             
             Path repoDir = baseDir.resolve(DOWNLOADED_REPOS);
+            if (projectName != null && !projectName.isEmpty()) {
+                repoDir = repoDir.resolve(projectName);
+            }
+            
             if (!Files.exists(repoDir)) {
                  Files.createDirectories(repoDir);
             }
@@ -167,6 +171,10 @@ public class Utils {
         } catch (Exception e) {
              throw new RuntimeException("Failed to resolve repositories path", e);
         }
+    }
+
+    public static String getRepositoriesPath() {
+        return getRepositoriesPath(null);
     }
 
     private static boolean isWindows() {

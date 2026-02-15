@@ -56,6 +56,7 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
   private Map<String, String> repoToBuildStatus = new HashMap<>(); // Renamed from reposBuildSuccessfullyToJavaVersion
   private Set<String> reposBuildFailed = new HashSet<>();
   private static String currentJavaVersionUsed;
+  private final String projectName;
   private String currentCommandExecuted;
 
   @Override
@@ -81,7 +82,7 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
 
   @Override
   protected Map<String, String> call() throws Exception {
-    var repositoriesPath = getRepositoriesPath();
+    var repositoriesPath = getRepositoriesPath(projectName);
     if (isDownloadRepositoriesEmpty(repositoriesPath)) throw new DepViewerException("No repositories found!");
     
     // Generate toolchains.xml before build

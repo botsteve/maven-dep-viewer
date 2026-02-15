@@ -345,6 +345,23 @@ public class GradleDependencyAnalyzerService {
   }
 
   private static String extractScope(JsonNode component) {
+    // 1. Try to find Gradle-specific properties (the plugin stores configuration names here)
+    JsonNode properties = component.path("properties");
+    if (properties.isArray()) {
+      for (JsonNode prop : properties) {
+        String name = prop.path("name").asText("");
+        if ("gradle:configuration".equals(name) || "gradle:configurations".equals(name)) {
+          String value = prop.path("value").asText("");
+          if (!value.isEmpty()) {
+            // If multiple configurations, take the first one or most important
+            String firstConfig = value.contains(",") ? value.split(",")[0].trim() : value;
+            return mapConfigurationToScope(firstConfig);
+          }
+        }
+      }
+    }
+
+    // 2. Fallback to standard CycloneDX scope
     String scope = component.path("scope").asText(null);
     if (scope != null && !scope.isEmpty()) {
       return switch (scope.toLowerCase()) {
@@ -354,7 +371,9 @@ public class GradleDependencyAnalyzerService {
         default -> scope;
       };
     }
-    return "compile";
+
+    // 3. Default to implementation for Gradle (more modern than 'compile')
+    return "implementation";
   }
 
   private static String extractScmUrl(JsonNode component, String artifactId) {

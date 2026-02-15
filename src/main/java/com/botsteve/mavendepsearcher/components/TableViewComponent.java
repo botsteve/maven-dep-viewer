@@ -34,6 +34,7 @@ public class TableViewComponent {
   private final CheckBox selectAllCheckBox = new CheckBox("Select All");
   private final CheckBox cleanUpCheckBox = new CheckBox("Clean up existing repos");
   private final Label projectNameLabel = new Label("No project loaded");
+  private String projectName;
 
 
   public TableViewComponent() {
