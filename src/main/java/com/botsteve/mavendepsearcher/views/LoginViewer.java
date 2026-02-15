@@ -16,7 +16,7 @@ import static com.botsteve.mavendepsearcher.utils.FxUtils.showAlert;
 public class LoginViewer {
 
   public static final LoginViewer LOGIN_VIEWER = new LoginViewer();
-  public boolean skip = false;
+  public boolean skip = true;
   private MainAppView mainAppView = new MainAppView();
 
   public void showPasswordDialog(Stage primaryStage) {

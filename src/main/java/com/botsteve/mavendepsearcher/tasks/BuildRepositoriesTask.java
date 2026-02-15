@@ -81,6 +81,14 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
   protected Map<String, String> call() throws Exception {
     var repositoriesPath = getRepositoriesPath();
     if (isDownloadRepositoriesEmpty(repositoriesPath)) throw new DepViewerException("No repositories found!");
+    
+    // Generate toolchains.xml before build
+    try {
+        com.botsteve.mavendepsearcher.utils.ToolchainsGenerator.generateToolchainsXml(com.botsteve.mavendepsearcher.utils.Utils.loadSettings());
+    } catch (Exception e) {
+        log.warn("Failed to generate toolchains.xml, Maven builds might fail if exact JDKs are required.", e);
+    }
+    
     buildProject(repositoriesPath);
     return reposBuildSuccessfullyToJavaVersion;
   }
@@ -112,7 +120,7 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
           try {
             buildRepository(repo);
             reposBuildSuccessfully.add(currentRepo);
-            reposBuildSuccessfullyToJavaVersion.put(currentRepo, currentJavaVersionUsed);
+            reposBuildSuccessfullyToJavaVersion.put(currentRepo, formatJavaVersion(currentJavaVersionUsed));
           } catch (Exception e) {
             reposBuildFailed.add(currentRepo);
           }
@@ -272,5 +280,17 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
     } catch (Exception e) {
       log.warn("Failed to change permissions for {}: {}", directory.getAbsolutePath(), e.getMessage());
     }
+  }
+
+  private String formatJavaVersion(String versionKey) {
+    if (versionKey == null) return "Unknown";
+    return switch (versionKey) {
+        case "JAVA21_HOME" -> "Java 21";
+        case "JAVA17_HOME" -> "Java 17";
+        case "JAVA11_HOME" -> "Java 11";
+        case "JAVA8_HOME" -> "Java 8";
+        case "JAVA_HOME" -> "System Java (" + System.getProperty("java.version") + ")";
+        default -> versionKey;
+    };
   }
 }

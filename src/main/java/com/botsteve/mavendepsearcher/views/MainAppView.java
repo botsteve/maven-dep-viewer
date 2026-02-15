@@ -18,6 +18,7 @@ import com.botsteve.mavendepsearcher.components.ContextMenuComponent;
 import com.botsteve.mavendepsearcher.components.MenuComponent;
 import com.botsteve.mavendepsearcher.components.ProgressBoxComponent;
 import com.botsteve.mavendepsearcher.components.TableViewComponent;
+import com.botsteve.mavendepsearcher.components.MenuComponent;
 
 @Data
 @EqualsAndHashCode(callSuper=false)

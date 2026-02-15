@@ -9,56 +9,52 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.maven.shared.invoker.MavenInvocationException;
 import com.botsteve.mavendepsearcher.model.DependencyNode;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 public class ScmUrlFetcherService {
 
 
-  private static final String CYCLONEDX_MAVEN = "org.cyclonedx:cyclonedx-maven-plugin:2.8.0:makeAggregateBom";
-  private static final String MAVEN_OPTS = "-DincludeTestScope=true -DoutputFormat=xml";
+  private static final String CYCLONEDX_MAVEN = "org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom";
+  private static final String MAVEN_OPTS = "-DincludeTestScope=true -DoutputFormat=json";
 
   public static void fetchScmUrls(String projectDir, Set<DependencyNode> dependencies)
       throws ParserConfigurationException, IOException, SAXException, MavenInvocationException {
     getMavenInvokerResult(projectDir, "", CYCLONEDX_MAVEN, MAVEN_OPTS, System.getenv("JAVA_HOME"));
-    populateVcsUrls(dependencies, parseBomFile(projectDir + "/target/bom.xml"));
+    populateVcsUrls(dependencies, parseBomFile(projectDir + "/target/bom.json"));
   }
 
 
-  private static Map<String, String> parseBomFile(String bomFilePath)
-      throws ParserConfigurationException, IOException, SAXException {
+  private static Map<String, String> parseBomFile(String bomFilePath) throws IOException {
     Map<String, String> vcsUrlMap = new HashMap<>();
     File bomFile = new File(bomFilePath);
-    DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-    DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-    Document doc = dBuilder.parse(bomFile);
-    doc.getDocumentElement().normalize();
+    
+    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+    com.fasterxml.jackson.databind.JsonNode rootNode = mapper.readTree(bomFile);
+    com.fasterxml.jackson.databind.JsonNode components = rootNode.get("components");
 
-    NodeList componentList = doc.getElementsByTagName("component");
-    for (int i = 0; i < componentList.getLength(); i++) {
-      Element component = (Element) componentList.item(i);
-      String groupId = component.getElementsByTagName("group").item(0).getTextContent();
-      String artifactId = component.getElementsByTagName("name").item(0).getTextContent();
-      String version = component.getElementsByTagName("version").item(0).getTextContent();
-      NodeList referenceList = component.getElementsByTagName("reference");
-      String vcsUrl = "SCM URL not found";
+    if (components != null && components.isArray()) {
+      for (com.fasterxml.jackson.databind.JsonNode component : components) {
+        String groupId = component.path("group").asText();
+        String artifactId = component.path("name").asText();
+        String version = component.path("version").asText();
+        String vcsUrl = "SCM URL not found";
 
-      for (int j = 0; j < referenceList.getLength(); j++) {
-        Element reference = (Element) referenceList.item(j);
-        if ("vcs".equals(reference.getAttribute("type"))) {
-          vcsUrl = reference.getElementsByTagName("url").item(0).getTextContent();
-          break;
+        com.fasterxml.jackson.databind.JsonNode externalReferences = component.path("externalReferences");
+        if (externalReferences.isArray()) {
+          for (com.fasterxml.jackson.databind.JsonNode ref : externalReferences) {
+            if ("vcs".equals(ref.path("type").asText())) {
+              vcsUrl = ref.path("url").asText();
+              break;
+            }
+          }
         }
+        
+        String key = groupId + ":" + artifactId + ":" + version;
+        vcsUrlMap.put(key, fixNonResolvableScmRepositorise(convertSCM(vcsUrl), artifactId));
       }
-      String key = groupId + ":" + artifactId + ":" + version;
-      vcsUrlMap.put(key, fixNonResolvableScmRepositorise(convertSCM(vcsUrl), artifactId));
     }
 
     return vcsUrlMap;

@@ -1,6 +1,7 @@
 package com.botsteve.mavendepsearcher.service;
 
 import java.io.File;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
@@ -20,6 +21,12 @@ public class MavenInvokerService {
                                                               String goals,
                                                               String mavenOpts,
                                                               String jdkPath) {
+    File toolchainsFile = null;
+    toolchainsFile = new File(com.botsteve.mavendepsearcher.utils.Utils.getRepositoriesPath(), "toolchains.xml");
+    if (toolchainsFile.exists()) {
+        goals += " --toolchains " + toolchainsFile.getAbsolutePath();
+    }
+
     // Set Maven executable and home
     Invoker invoker = new DefaultInvoker();
     invoker.setMavenHome(new File(System.getenv("MAVEN_HOME")));

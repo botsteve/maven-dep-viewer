@@ -27,6 +27,7 @@ import com.botsteve.mavendepsearcher.tasks.DependencyLoadingTask;
 public class ButtonsComponent {
 
   private static AtomicBoolean isDownloaded = new AtomicBoolean(false);
+  private final javafx.beans.property.BooleanProperty isTaskRunning = new javafx.beans.property.SimpleBooleanProperty(false);
   private final TableViewComponent tableViewComponent;
 
   public ToolBar getToolBar(Stage primaryStage, ProgressBar progressBar, Label progressLabel) {
@@ -34,6 +35,12 @@ public class ButtonsComponent {
     var downloadButton = createDownloadSelectedButton(progressBar, progressLabel);
     var buildSelectedButton = createBuildSelectedButton(progressBar, progressLabel);
     var buildAggregatedLicenseButton = createBuildAggregatedLicenseButton(progressBar, progressLabel);
+    
+    openButton.disableProperty().bind(isTaskRunning);
+    downloadButton.disableProperty().bind(isTaskRunning);
+    buildSelectedButton.disableProperty().bind(isTaskRunning);
+    buildAggregatedLicenseButton.disableProperty().bind(isTaskRunning);
+    
     return new ToolBar(openButton, downloadButton, buildSelectedButton, buildAggregatedLicenseButton);
   }
 
@@ -49,8 +56,10 @@ public class ButtonsComponent {
       if (!arePropertiesConfiguredAndValid() || !areDependenciesSelected()) {
         return;
       }
+      isTaskRunning.set(true);
       BuildRepositoriesTask task = new BuildRepositoriesTask(progressBar, progressLabel);
       task.setOnSucceeded(workerStateEvent -> {
+        isTaskRunning.set(false);
         var successfulBuiltReposToJavaVersion = task.getValue();
         tableViewComponent.getSelectedDependencies()
             .forEach(dependencyNode ->
@@ -62,6 +71,9 @@ public class ButtonsComponent {
         // simulating refresh
         tableViewComponent.updateTreeViewWithFilteredDependencies(tableViewComponent.getFilterInput().getText());
       });
+      task.setOnFailed(e -> isTaskRunning.set(false));
+      task.setOnCancelled(e -> isTaskRunning.set(false));
+      
       Thread buildThread = new Thread(task);
       progressBar.progressProperty().bind(task.progressProperty());
       buildThread.start();
@@ -77,8 +89,10 @@ public class ButtonsComponent {
         Platform.runLater(() -> showError("No dependencies selected!"));
         return;
       }
+      isTaskRunning.set(true);
       DependencyDownloaderTask task = new DependencyDownloaderTask(urlToVersion, progressBar, progressLabel);
       task.setOnSucceeded(workerStateEvent -> {
+        isTaskRunning.set(false);
         isDownloaded.set(true);
         var versionToCheckoutTag = task.getValue();
         tableViewComponent.getSelectedDependencies()
@@ -90,6 +104,9 @@ public class ButtonsComponent {
             );
         tableViewComponent.updateTreeViewWithFilteredDependencies(tableViewComponent.getFilterInput().getText());
       });
+      task.setOnFailed(e -> isTaskRunning.set(false));
+      task.setOnCancelled(e -> isTaskRunning.set(false));
+      
       Thread thread = new Thread(task);
       progressBar.progressProperty().bind(task.progressProperty());
       thread.start();
@@ -115,6 +132,7 @@ public class ButtonsComponent {
           return;
         }
         reset();
+        isTaskRunning.set(true);
         progressBar.setVisible(true);
         progressLabel.setVisible(true);
         progressLabel.setText("Loading dependencies...");
@@ -123,10 +141,13 @@ public class ButtonsComponent {
                                              tableViewComponent.getTreeTableView());
 
         task.setOnSucceeded(workerStateEvent -> {
+          isTaskRunning.set(false);
           tableViewComponent.setAllDependencies(FXCollections.observableSet(task.getValue()));
           tableViewComponent.updateTreeView(tableViewComponent.getAllDependencies());
           tableViewComponent.updateTreeViewWithFilteredDependencies(tableViewComponent.getFilterInput().getText());
         });
+        task.setOnFailed(e -> isTaskRunning.set(false));
+        task.setOnCancelled(e -> isTaskRunning.set(false));
 
         progressBar.progressProperty().bind(task.progressProperty());
         new Thread(task).start();

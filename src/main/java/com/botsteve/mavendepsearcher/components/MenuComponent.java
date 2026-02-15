@@ -15,12 +15,7 @@ import javafx.scene.control.Dialog;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
-import javafx.scene.control.ToolBar;
-import javafx.scene.control.cell.TextFieldTableCell;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
@@ -53,60 +48,66 @@ public class MenuComponent {
     // Load existing settings or create new ones
     Properties settings = loadSettings();
 
-    // Create dialog components (TableView, TableColumn, TextField, Button)
-    TableView<EnvSetting> tableView = new TableView<>();
-    TableColumn<EnvSetting, String> nameCol = new TableColumn<>("Name");
-    nameCol.setCellValueFactory(cellData -> cellData.getValue().nameProperty());
+    Dialog<Void> dialog = new Dialog<>();
+    dialog.setTitle("Environment Settings");
+    dialog.initOwner(primaryStage);
+    dialog.initModality(Modality.APPLICATION_MODAL);
 
-    TableColumn<EnvSetting, String> valueCol = new TableColumn<>("Value");
-    valueCol.setCellValueFactory(cellData -> cellData.getValue().valueProperty());
-    valueCol.setCellFactory(TextFieldTableCell.forTableColumn());
-    valueCol.setOnEditCommit(event -> {
-      EnvSetting setting = event.getRowValue();
-      setting.setValue(event.getNewValue());
+    VBox content = new VBox(10);
+    content.setStyle("-fx-padding: 20;");
+
+    // Helper to create rows
+    addSettingRow(content, settings, "JAVA21_HOME", primaryStage);
+    addSettingRow(content, settings, "JAVA17_HOME", primaryStage);
+    addSettingRow(content, settings, "JAVA11_HOME", primaryStage);
+    addSettingRow(content, settings, "JAVA8_HOME", primaryStage);
+
+    ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
+    dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
+
+    dialog.getDialogPane().setContent(content);
+
+    dialog.setResultConverter(dialogButton -> {
+      if (dialogButton == saveButtonType) {
+        ObservableList<EnvSetting> settingsList = FXCollections.observableArrayList();
+        content.getChildren().forEach(node -> {
+            if (node instanceof javafx.scene.layout.HBox) {
+                javafx.scene.layout.HBox row = (javafx.scene.layout.HBox) node;
+                String key = ((javafx.scene.control.Label) row.getChildren().get(0)).getText();
+                String value = ((javafx.scene.control.TextField) row.getChildren().get(1)).getText();
+                settingsList.add(new EnvSetting(new SimpleStringProperty(key), new SimpleStringProperty(value)));
+            }
+        });
+        saveSettings(settingsList);
+      }
+      return null;
     });
 
-    // Ensure columns are equally distributed
-    tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-    nameCol.setMaxWidth(1f * Integer.MAX_VALUE * 50); // 50% width
-    valueCol.setMaxWidth(1f * Integer.MAX_VALUE * 50); // 50% width
+    dialog.showAndWait();
+  }
 
-    tableView.getColumns().addAll(nameCol, valueCol);
-    tableView.setEditable(true);
-
-    ObservableList<EnvSetting> settingsList = FXCollections.observableArrayList();
-
-    settingsList.addAll(new EnvSetting(new SimpleStringProperty("JAVA8_HOME"),
-                                       new SimpleStringProperty(settings.getProperty("JAVA8_HOME", ""))),
-                        new EnvSetting(new SimpleStringProperty("JAVA11_HOME"),
-                                       new SimpleStringProperty(settings.getProperty("JAVA11_HOME", ""))),
-                        new EnvSetting(new SimpleStringProperty("JAVA17_HOME"),
-                                       new SimpleStringProperty(settings.getProperty("JAVA17_HOME", "")))
-    );
-    tableView.setItems(settingsList);
-
-    Button saveButton = new Button("Save");
-    saveButton.setOnAction(event -> {
-      saveSettings(settingsList);
-      ((Stage) saveButton.getScene().getWindow()).close(); // Close dialog
-    });
-
-    Button closeButton = new Button("Close");
-    closeButton.setOnAction(event -> {
-      ((Stage) closeButton.getScene().getWindow()).close(); // Close dialog
-    });
-
-    // Layout
-    BorderPane dialogRoot = new BorderPane();
-    dialogRoot.setCenter(tableView);
-    dialogRoot.setBottom(new ToolBar(saveButton, closeButton));
-
-    Scene dialogScene = new Scene(dialogRoot, 800, 300);
-    Stage dialogStage = new Stage();
-    dialogStage.setScene(dialogScene);
-    dialogStage.setTitle("Environment Settings");
-    dialogStage.initOwner(primaryStage); // Set owner to maintain focus hierarchy
-    dialogStage.showAndWait(); // Show dialog and wait for it to be closed
+  private void addSettingRow(VBox parent, Properties settings, String key, Stage stage) {
+      javafx.scene.layout.HBox row = new javafx.scene.layout.HBox(10);
+      row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+      
+      javafx.scene.control.Label label = new javafx.scene.control.Label(key);
+      label.setMinWidth(100);
+      
+      javafx.scene.control.TextField textField = new javafx.scene.control.TextField(settings.getProperty(key, ""));
+      textField.setPrefWidth(300);
+      
+      Button browseButton = new Button("Browse");
+      browseButton.setOnAction(e -> {
+          javafx.stage.DirectoryChooser directoryChooser = new javafx.stage.DirectoryChooser();
+          directoryChooser.setTitle("Select " + key);
+          File selectedDirectory = directoryChooser.showDialog(stage);
+          if (selectedDirectory != null) {
+              textField.setText(selectedDirectory.getAbsolutePath());
+          }
+      });
+      
+      row.getChildren().addAll(label, textField, browseButton);
+      parent.getChildren().add(row);
   }
 
   private void openAboutDialog() {

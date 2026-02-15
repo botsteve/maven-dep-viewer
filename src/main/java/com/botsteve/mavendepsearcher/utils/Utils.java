@@ -146,9 +146,37 @@ public class Utils {
         }
     }
 
+    public static String getRepositoriesPath() {
+        try {
+            Path codeSourcePath = Paths.get(Utils.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            Path baseDir;
+            
+            if (codeSourcePath.toString().endsWith(".jar")) {
+                baseDir = codeSourcePath.getParent();
+            } else {
+                // Assuming .../target/classes
+                baseDir = codeSourcePath.getParent().getParent(); 
+                if (baseDir == null) baseDir = Paths.get("."); // Fallback
+            }
+            
+            Path repoDir = baseDir.resolve(DOWNLOADED_REPOS);
+            if (!Files.exists(repoDir)) {
+                 Files.createDirectories(repoDir);
+            }
+            return repoDir.toAbsolutePath().toString();
+        } catch (Exception e) {
+             throw new RuntimeException("Failed to resolve repositories path", e);
+        }
+    }
+
+    private static boolean isWindows() {
+        return System.getProperty("os.name").toLowerCase().contains("win");
+    }
+
     public static String retrieveSourceCompatibility(File projectDir, String jdkPath) throws IOException, InterruptedException {
         // Define the Gradle command
-        String[] command = {"./gradlew", "properties", "-Porg.gradle.java.installations.auto-download=false"};
+        String wrapper = isWindows() ? "gradlew.bat" : "./gradlew";
+        String[] command = {wrapper, "properties", "-Porg.gradle.java.installations.auto-download=false"};
 
         // Start the process
         ProcessBuilder processBuilder = new ProcessBuilder(command);
@@ -215,30 +243,6 @@ public class Utils {
         return 0;
     }
 
-    public static String getRepositoriesPath() throws URISyntaxException {
-        try {
-            Path codeSourcePath = Paths.get(Utils.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-            
-            // If running from a JAR, codeSourcePath is the JAR file. Parent is the directory.
-            // If running from IDE (classes), codeSourcePath is the classes directory. Parent is target/ (usually).
-            // The original logic seemed to want 'downloaded_repos' next to the JAR or in the project root?
-            // "if jarPath.endsWith(".jar") ... jarPath = jarPath.substring(0, lastSlashIndex + 1);" -> implies next to JAR.
-            
-            Path repoDir;
-            if (Files.isRegularFile(codeSourcePath)) { // It's a JAR or file
-                 repoDir = codeSourcePath.getParent().resolve(DOWNLOADED_REPOS);
-            } else { // It's a directory (classes)
-                 repoDir = codeSourcePath.resolve(DOWNLOADED_REPOS);
-            }
-            
-            Path finalPath = repoDir.normalize();
-            
-            log.debug("Resolved Repositories Path: {}", finalPath);
-            return finalPath.toString() + File.separator;
-        } catch (Exception e) {
-             throw new RuntimeException("Failed to resolve repositories path", e);
-        }
-    }
 
     private static boolean isValidJdkHome(File jdkHome) {
         var binCheck = new File(jdkHome, "bin").isDirectory();
