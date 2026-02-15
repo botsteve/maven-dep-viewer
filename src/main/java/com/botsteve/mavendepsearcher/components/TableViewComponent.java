@@ -1,6 +1,5 @@
 package com.botsteve.mavendepsearcher.components;
 
-import static com.botsteve.mavendepsearcher.utils.FxUtils.createBox;
 
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -38,8 +37,34 @@ public class TableViewComponent {
 
   public TableViewComponent() {
     treeTableView.setShowRoot(false);
-    treeTableView.setColumnResizePolicy(TreeTableView.CONSTRAINED_RESIZE_POLICY);
+    treeTableView.setColumnResizePolicy(TreeTableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
     treeTableView.setEditable(true);
+
+    // Setup Context Menu
+    javafx.scene.control.ContextMenu contextMenu = new javafx.scene.control.ContextMenu();
+    javafx.scene.control.MenuItem copyScmItem = new javafx.scene.control.MenuItem("Copy SCM URL");
+    copyScmItem.setOnAction(event -> {
+      DependencyNode selected = treeTableView.getSelectionModel().getSelectedItem() == null ? null : treeTableView.getSelectionModel().getSelectedItem().getValue();
+      if (selected != null && selected.getScmUrl() != null) {
+        javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
+        content.putString(selected.getScmUrl());
+        javafx.scene.input.Clipboard.getSystemClipboard().setContent(content);
+      }
+    });
+
+    javafx.scene.control.MenuItem copyGavItem = new javafx.scene.control.MenuItem("Copy GAV (group:artifact:version)");
+    copyGavItem.setOnAction(event -> {
+      DependencyNode selected = treeTableView.getSelectionModel().getSelectedItem() == null ? null : treeTableView.getSelectionModel().getSelectedItem().getValue();
+      if (selected != null) {
+        javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
+        content.putString(selected.getGroupId() + ":" + selected.getArtifactId() + ":" + selected.getVersion());
+        javafx.scene.input.Clipboard.getSystemClipboard().setContent(content);
+      }
+    });
+
+    contextMenu.getItems().addAll(copyScmItem, copyGavItem);
+    treeTableView.setContextMenu(contextMenu);
+
     filterInput.setPromptText("Exclude dependencies...");
     filterInput.textProperty().addListener((observable, oldValue, newValue) -> {
       applyFilters();
@@ -217,6 +242,21 @@ public class TableViewComponent {
   }
 
   public HBox creatToolsBox() {
-    return createBox(new HBox(10, filterLabel, filterInput, new Label("Scope:"), scopeFilterMenu, statsLabel, selectAllCheckBox, cleanUpCheckBox), Pos.CENTER_LEFT);
+    HBox box = new HBox(15);
+    box.setAlignment(Pos.CENTER_LEFT);
+    box.setPadding(new javafx.geometry.Insets(5, 15, 5, 15));
+    box.getStyleClass().add("tool-bar");
+    
+    HBox filterBox = new HBox(8, filterLabel, filterInput);
+    filterBox.setAlignment(Pos.CENTER_LEFT);
+    
+    HBox scopeBox = new HBox(8, new Label("Scope:"), scopeFilterMenu);
+    scopeBox.setAlignment(Pos.CENTER_LEFT);
+    
+    javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
+    HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+    
+    box.getChildren().addAll(filterBox, scopeBox, spacer, statsLabel, selectAllCheckBox, cleanUpCheckBox);
+    return box;
   }
 }

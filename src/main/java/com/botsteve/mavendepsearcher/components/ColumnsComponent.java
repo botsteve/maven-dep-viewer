@@ -14,6 +14,24 @@ public class ColumnsComponent {
   public TreeTableColumn<DependencyNode, String> getBuildWithColumn() {
     TreeTableColumn<DependencyNode, String> buildWithColumn = new TreeTableColumn<>("Output");
     buildWithColumn.setCellValueFactory(param -> getSimpleStringProperty(param.getValue().getValue().getBuildWith()));
+    buildWithColumn.setCellFactory(column -> new javafx.scene.control.TreeTableCell<>() {
+      @Override
+      protected void updateItem(String item, boolean empty) {
+        super.updateItem(item, empty);
+        if (empty || item == null) {
+          setText(null);
+          getStyleClass().removeAll("status-ok", "status-failed");
+        } else {
+          setText(item);
+          getStyleClass().removeAll("status-ok", "status-failed");
+          if (item.contains("Build OK")) {
+            getStyleClass().add("status-ok");
+          } else if (item.contains("Failed") || item.contains("Internal Error")) {
+            getStyleClass().add("status-failed");
+          }
+        }
+      }
+    });
     buildWithColumn.setMinWidth(100);
     return buildWithColumn;
   }
@@ -27,6 +45,45 @@ public class ColumnsComponent {
   public TreeTableColumn<DependencyNode, String> getSCMTreeTableColumn() {
     TreeTableColumn<DependencyNode, String> scmColumn = new TreeTableColumn<>("SCM URL");
     scmColumn.setCellValueFactory(param -> getSimpleStringProperty(getSCMColumnValue(param)));
+    scmColumn.setCellFactory(column -> new javafx.scene.control.TreeTableCell<>() {
+      private final javafx.scene.control.Hyperlink link = new javafx.scene.control.Hyperlink();
+      {
+        link.setOnAction(event -> {
+          String url = itemProperty().get();
+          if (url != null && !url.isEmpty() && !"SCM URL not found".equals(url)) {
+            new Thread(() -> {
+              try {
+                if (System.getProperty("os.name").toLowerCase().contains("mac")) {
+                  Runtime.getRuntime().exec(new String[]{"open", url});
+                } else if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                  Runtime.getRuntime().exec(new String[]{"cmd", "/c", "start", url});
+                }
+              } catch (Exception e) {
+                // Ignore
+              }
+            }).start();
+          }
+        });
+      }
+      @Override
+      protected void updateItem(String item, boolean empty) {
+        super.updateItem(item, empty);
+        if (empty || item == null || item.isEmpty() || "SCM URL not found".equals(item)) {
+          setGraphic(null);
+          setText(item);
+          if ("SCM URL not found".equals(item)) {
+            setStyle("-fx-text-fill: #95a5a6;");
+          } else {
+            setStyle("");
+          }
+        } else {
+          link.setText(item);
+          setGraphic(link);
+          setText(null);
+          setStyle("");
+        }
+      }
+    });
     return scmColumn;
   }
 

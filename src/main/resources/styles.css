@@ -145,6 +145,30 @@
     -fx-spacing: 10px;
 }
 
+.status-ok {
+    -fx-text-fill: #27ae60;
+    -fx-font-weight: bold;
+}
+
+.status-failed {
+    -fx-text-fill: #e74c3c;
+    -fx-font-weight: bold;
+}
+
+.tree-table-row-cell:hover {
+    -fx-background-color: #f1f2f6;
+}
+
+.hyperlink {
+    -fx-padding: 0;
+    -fx-border-color: transparent;
+    -fx-underline: true;
+}
+
+.hyperlink:hover {
+    -fx-text-fill: #2980b9;
+}
+
 /* Dark Theme Overrides */
 .root.dark-mode {
     -fx-base: #2b2b2b;
@@ -211,6 +235,10 @@
     -fx-background-color: #1e1e1e;
 }
 
+.root.dark-mode .tree-table-row-cell:hover {
+    -fx-background-color: #3a3a3a;
+}
+
 .root.dark-mode .tree-table-row-cell:filled:selected {
     -fx-background-color: #0d47a1;
 }
@@ -240,4 +268,20 @@
 
 .root.dark-mode .menu-item:hover {
     -fx-background-color: #404040;
+}
+
+.root.dark-mode .status-ok {
+    -fx-text-fill: #2ecc71;
+}
+
+.root.dark-mode .status-failed {
+    -fx-text-fill: #e74c3c;
+}
+
+.root.dark-mode .hyperlink {
+    -fx-text-fill: #5dade2;
+}
+
+.root.dark-mode .hyperlink:hover {
+    -fx-text-fill: #85c1e9;
 }
