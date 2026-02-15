@@ -5,7 +5,12 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  release:
+    types: [published]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -36,3 +41,8 @@ jobs:
         path: target/maven-dep-searcher.jar
         if-no-files-found: error
 
+    - name: Publish to Release
+      if: matrix.os == 'ubuntu-latest' && github.event_name == 'release'
+      uses: softprops/action-gh-release@v2
+      with:
+        files: target/maven-dep-searcher.jar
