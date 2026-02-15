@@ -46,6 +46,16 @@ public class ColumnsComponent {
     return dependencyColumn;
   }
 
+  public TreeTableColumn<DependencyNode, String> getScopeColumn() {
+    TreeTableColumn<DependencyNode, String> scopeColumn = new TreeTableColumn<>("Scope");
+    scopeColumn.setCellValueFactory(param -> {
+      String scope = param.getValue().getValue().getScope();
+      return getSimpleStringProperty(scope != null ? scope : "");
+    });
+    scopeColumn.setMinWidth(80);
+    return scopeColumn;
+  }
+
 
   private String getSCMColumnValue(TreeTableColumn.CellDataFeatures<DependencyNode, String> param) {
     return param.getValue().getValue().getScmUrl();
@@ -63,14 +73,15 @@ public class ColumnsComponent {
 
   public void configureColumnsWidthStyle(TreeTableColumn<DependencyNode, Boolean> selectColumn,
                                          TreeTableColumn<DependencyNode, String> dependencyColumn,
+                                         TreeTableColumn<DependencyNode, String> scopeColumn,
                                          TreeTableColumn<DependencyNode, String> scmColumn,
                                          TreeTableColumn<DependencyNode, String> checkoutTagColumn,
                                          TreeTableColumn<DependencyNode, String> buildWithColumn) {
     // Set initial widths to distribute space roughly, but allow resizing
-    // Assuming visible width ~1000. 50 (select) + others.
-    dependencyColumn.setPrefWidth(250);
-    scmColumn.setPrefWidth(250);
-    checkoutTagColumn.setPrefWidth(200);
-    buildWithColumn.setPrefWidth(250);
+    dependencyColumn.setPrefWidth(230);
+    scopeColumn.setPrefWidth(110);
+    scmColumn.setPrefWidth(220);
+    checkoutTagColumn.setPrefWidth(170);
+    buildWithColumn.setPrefWidth(220);
   }
 }

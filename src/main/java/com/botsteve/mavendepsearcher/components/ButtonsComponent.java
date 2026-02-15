@@ -118,25 +118,34 @@ public class ButtonsComponent {
   public Button createOpenDirectoryButton(Stage primaryStage, ProgressBar progressBar, Label progressLabel) {
     Button openButton = new Button("Open Directory");
     openButton.setOnAction(event -> {
-      var mavenHome = System.getenv("MAVEN_HOME");
       var javaHome = System.getenv("JAVA_HOME");
-      if (mavenHome == null || mavenHome.isEmpty() || javaHome == null || javaHome.isEmpty()) {
-        showError("MAVEN_HOME or JAVA_HOME environment variables are not configured, please configure and try again!");
+      if (javaHome == null || javaHome.isEmpty()) {
+        showError("JAVA_HOME environment variable is not configured, please configure and try again!");
         return;
       }
       DirectoryChooser directoryChooser = new DirectoryChooser();
       File selectedDirectory = directoryChooser.showDialog(primaryStage);
       if (selectedDirectory != null) {
-        if (!new File(selectedDirectory, "pom.xml").exists()) {
-          getErrorAlertAndCloseProgressBar("Not a valid maven project! Please open the root directory of a maven project",
-                                           progressBar, progressLabel);
+        var projectType = com.botsteve.mavendepsearcher.model.ProjectType.detect(selectedDirectory);
+        if (projectType == com.botsteve.mavendepsearcher.model.ProjectType.UNKNOWN) {
+          getErrorAlertAndCloseProgressBar(
+              "No recognizable build file found!\n" +
+              "Please open the root directory of a Maven (pom.xml) or Gradle (build.gradle) project.",
+              progressBar, progressLabel);
           return;
+        }
+        if (projectType == com.botsteve.mavendepsearcher.model.ProjectType.MAVEN) {
+          var mavenHome = System.getenv("MAVEN_HOME");
+          if (mavenHome == null || mavenHome.isEmpty()) {
+            showError("MAVEN_HOME environment variable is not configured. It is required for Maven projects.");
+            return;
+          }
         }
         reset();
         isTaskRunning.set(true);
         progressBar.setVisible(true);
         progressLabel.setVisible(true);
-        progressLabel.setText("Loading dependencies...");
+        progressLabel.setText("Loading " + projectType.name().toLowerCase() + " dependencies...");
 
         var task = new DependencyLoadingTask(selectedDirectory.getPath(), progressBar, progressLabel,
                                              tableViewComponent.getTreeTableView());
@@ -156,6 +165,7 @@ public class ButtonsComponent {
     });
     return openButton;
   }
+
 
   private void reset() {
     tableViewComponent.getSelectAllCheckBox().setSelected(false);

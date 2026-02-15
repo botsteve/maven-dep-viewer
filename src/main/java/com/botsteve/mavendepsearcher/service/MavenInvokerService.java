@@ -46,18 +46,23 @@ public class MavenInvokerService {
         throw new DepViewerException("Maven executable not found at: " + mavenExecutable.getAbsolutePath());
     }
 
+    log.info("Maven home: {}", mavenHomeFile.getAbsolutePath());
+    log.info("Maven executable: {}", mavenExecutable.getAbsolutePath());
+
     Invoker invoker = new DefaultInvoker();
     invoker.setMavenHome(mavenHomeFile);
     invoker.setMavenExecutable(mavenExecutable);
 
     InvocationRequest request = new DefaultInvocationRequest();
-    request.setPomFile(new File(projectDir, moduleDir + "/pom.xml"));
+    File pomFile = new File(projectDir, moduleDir + "/pom.xml");
+    request.setPomFile(pomFile);
     request.addArgs(Arrays.asList(goals.trim().split(" ")));
     request.setBatchMode(true);
+    request.setDebug(true); // Enable verbose/debug output (-X)
     request.setMavenOpts(mavenOpts.trim());
     request.addShellEnvironment("JAVA_HOME", jdkPath);
-    log.info("Invoker executing Maven command goals: {} and OPTS: {} with JAVA_HOME: {} on repository: {}", goals, mavenOpts,
-             jdkPath, projectDir);
+    log.info("Invoking Maven: goals=[{}] opts=[{}] JAVA_HOME=[{}] pom=[{}]", goals, mavenOpts,
+             jdkPath, pomFile.getAbsolutePath());
 
     var outputHandler = new CollectingOutputHandler();
     request.setOutputHandler(outputHandler);
@@ -65,13 +70,17 @@ public class MavenInvokerService {
     InvocationResult result = null;
     try {
       result = invoker.execute(request);
+      log.info("Maven command finished with exit code: {}", result.getExitCode());
 
       if (result.getExitCode() != 0) {
         var depViewerException = new DepViewerException("Build failed!");
-        log.error("Build failed!", depViewerException);
+        log.error("Build failed with exit code {}!", result.getExitCode(), depViewerException);
         throw depViewerException;
       }
+    } catch (DepViewerException e) {
+      throw e;
     } catch (Exception e) {
+      log.error("Maven invocation failed with exception", e);
       throw new DepViewerException(e);
     }
 

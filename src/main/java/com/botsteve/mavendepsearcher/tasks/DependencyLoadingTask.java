@@ -11,7 +11,9 @@ import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeTableView;
 import lombok.extern.slf4j.Slf4j;
 import com.botsteve.mavendepsearcher.model.DependencyNode;
+import com.botsteve.mavendepsearcher.model.ProjectType;
 import com.botsteve.mavendepsearcher.service.DependencyAnalyzerService;
+import com.botsteve.mavendepsearcher.service.GradleScmUrlFetcherService;
 import com.botsteve.mavendepsearcher.service.ScmUrlFetcherService;
 
 @Slf4j
@@ -34,13 +36,20 @@ public class DependencyLoadingTask extends Task<Set<DependencyNode>> {
   protected Set<DependencyNode> call() throws Exception {
     Platform.runLater(() -> progressLabel.setText("Loading dependencies..."));
     var dependencies = DependencyAnalyzerService.getDependencies(projectDir);
-    ScmUrlFetcherService.fetchScmUrls(projectDir, dependencies);
+
+    Platform.runLater(() -> progressLabel.setText("Fetching SCM URLs..."));
+    ProjectType projectType = DependencyAnalyzerService.getProjectType(projectDir);
+    if (projectType == ProjectType.MAVEN) {
+      ScmUrlFetcherService.fetchScmUrls(projectDir, dependencies);
+    } else {
+      // For Gradle projects, fetch SCM URLs from Maven Central POMs
+      GradleScmUrlFetcherService.fetchScmUrls(dependencies);
+    }
     return dependencies;
   }
 
   @Override
   protected void succeeded() {
-    Platform.runLater(() -> progressLabel.setText("Fetching SCM URLs..."));
     Set<DependencyNode> dependencies = getValue();
     TreeItem<DependencyNode> rootItem = new TreeItem<>(new DependencyNode("Root", "", ""));
     for (DependencyNode node : dependencies) {
@@ -57,12 +66,14 @@ public class DependencyLoadingTask extends Task<Set<DependencyNode>> {
     Throwable exception = getException();
     if (exception != null) {
       log.error(exception.getMessage(), exception);
-      getErrorAlertAndCloseProgressBar("""
-                                           Make sure the maven project compiles and has a error-free root pom.xml.
-                                           If you are behind a proxy, check maven proxy in ~/.m2/settings.xml.
-                                           """,
-                                       progressBar,
-                                       progressLabel);
+      ProjectType projectType = DependencyAnalyzerService.getProjectType(projectDir);
+      String errorMsg = projectType == ProjectType.GRADLE
+          ? "Failed to analyze Gradle project. Make sure the project compiles " +
+            "and Gradle Wrapper (gradlew) or system Gradle is available.\n" +
+            "Error: " + exception.getMessage()
+          : "Make sure the maven project compiles and has a error-free root pom.xml.\n" +
+            "If you are behind a proxy, check maven proxy in ~/.m2/settings.xml.";
+      getErrorAlertAndCloseProgressBar(errorMsg, progressBar, progressLabel);
     }
   }
 

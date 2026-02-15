@@ -29,6 +29,9 @@ public class DependencyNode {
   @JsonProperty("scmUrl")
   private String scmUrl;
 
+  @JsonProperty("scope")
+  private String scope;
+
   @JsonProperty("children")
   private List<DependencyNode> children;
 
@@ -45,6 +48,13 @@ public class DependencyNode {
     this.groupId = groupId;
     this.artifactId = artifactId;
     this.version = version;
+  }
+
+  public DependencyNode(String groupId, String artifactId, String version, String scope) {
+    this.groupId = groupId;
+    this.artifactId = artifactId;
+    this.version = version;
+    this.scope = scope;
   }
 
   public String getBuildWith() {

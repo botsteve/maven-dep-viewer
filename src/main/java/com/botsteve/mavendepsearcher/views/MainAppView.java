@@ -18,7 +18,6 @@ import com.botsteve.mavendepsearcher.components.ContextMenuComponent;
 import com.botsteve.mavendepsearcher.components.MenuComponent;
 import com.botsteve.mavendepsearcher.components.ProgressBoxComponent;
 import com.botsteve.mavendepsearcher.components.TableViewComponent;
-import com.botsteve.mavendepsearcher.components.MenuComponent;
 
 @Data
 @EqualsAndHashCode(callSuper=false)
@@ -39,13 +38,14 @@ public class MainAppView extends Application {
     Scene scene = new Scene(root, 1000, 800);
     var treeTableView = tableViewComponent.getTreeTableView();
     var dependencyColumn = columnsComponent.getDependencyTreeTableColumn();
+    var scopeColumn = columnsComponent.getScopeColumn();
     var scmColumn = columnsComponent.getSCMTreeTableColumn();
     var selectColumn = columnsComponent.getSelectTreeTableColumn();
     var checkoutTagColumn = columnsComponent.getCheckoutTagColumn();
     var buildWithColumn = columnsComponent.getBuildWithColumn();
-    treeTableView.getColumns().addAll(selectColumn, dependencyColumn, scmColumn, checkoutTagColumn, buildWithColumn);
+    treeTableView.getColumns().addAll(selectColumn, dependencyColumn, scopeColumn, scmColumn, checkoutTagColumn, buildWithColumn);
     treeTableView.setTreeColumn(dependencyColumn);
-    columnsComponent.configureColumnsWidthStyle(selectColumn, dependencyColumn, scmColumn, checkoutTagColumn, buildWithColumn);
+    columnsComponent.configureColumnsWidthStyle(selectColumn, dependencyColumn, scopeColumn, scmColumn, checkoutTagColumn, buildWithColumn);
     checkBoxComponent.configureCheckBoxAction();
 
     var progressBar = progressBoxComponent.createProgressBar();
@@ -69,7 +69,7 @@ public class MainAppView extends Application {
     Label developerLabel = new Label("Developed by Rusen Stefan @ Oracle");
     BorderPane.setAlignment(developerLabel, Pos.BOTTOM_CENTER);
     root.setBottom(developerLabel);
-    primaryStage.setTitle("Maven Dependencies Viewer");
+    primaryStage.setTitle("Dependencies Viewer");
     scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());
     primaryStage.setScene(scene);
     primaryStage.show();

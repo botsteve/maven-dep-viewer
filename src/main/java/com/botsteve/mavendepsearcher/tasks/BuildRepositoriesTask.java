@@ -34,6 +34,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 import com.botsteve.mavendepsearcher.exception.DepViewerException;
+import com.botsteve.mavendepsearcher.service.GradleDependencyAnalyzerService;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -42,7 +43,7 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
 
   private static final boolean IS_WINDOWS = System.getProperty("os.name").toLowerCase().contains("win");
   private static final String GRADLE_WRAPPER = IS_WINDOWS ? "gradlew.bat" : "./gradlew";
-  private static final String[] GRADLE_COMMAND = {GRADLE_WRAPPER, "clean", "build"};
+  private static final String[] GRADLE_COMMAND = {GRADLE_WRAPPER, "clean", "build", "--info"};
   private static final String[] GRADLE_STOP_COMMAND = {GRADLE_WRAPPER, "--stop"};
   private static final String MAVEN_OPTS = "-Dmaven.compiler.fork=true -DargLine=\"-Xmx2g\"";
   private static final String JAVA_HOME = "JAVA_HOME";
@@ -198,6 +199,25 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
   }
 
   private void tryGradleBuildWithDifferentJdks(File repo) {
+    // Try detecting the compatible Java version from the Gradle wrapper first
+    String detectedJavaVersion = GradleDependencyAnalyzerService.detectJavaVersionFromGradleWrapper(repo);
+    if (detectedJavaVersion != null) {
+      String detectedJdkPath = com.botsteve.mavendepsearcher.utils.JavaVersionResolver.resolveJavaPathToBeUsed(detectedJavaVersion);
+      if (detectedJdkPath != null && !detectedJdkPath.isEmpty()) {
+        log.info("Detected compatible Java version {} for Gradle wrapper, trying JAVA_HOME={}", detectedJavaVersion, detectedJdkPath);
+        try {
+          runGradleBuild(repo, detectedJdkPath, GRADLE_STOP_COMMAND);
+          runGradleBuild(repo, detectedJdkPath, GRADLE_COMMAND);
+          currentJavaVersionUsed = com.botsteve.mavendepsearcher.utils.JavaVersionResolver.resolveJavaVersionToEnvProperty(detectedJavaVersion);
+          return;
+        } catch (Exception e) {
+          if (isFatalError(e)) throw (RuntimeException) e;
+          log.warn("Gradle build failed with detected JDK ({}), falling back to brute-force approach", detectedJdkPath);
+        }
+      }
+    }
+
+    // Fallback: try all configured JDKs
     String currentJdkPath = System.getenv(JAVA_HOME);
     boolean buildSuccessful = false;
 
@@ -245,7 +265,7 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
 
     int exitCode = process.waitFor();
     if (exitCode == 0) {
-      log.debug("Build successful for {}", repo.getName());
+      log.info("Gradle build successful for {}", repo.getName());
     } else {
       throw new DepViewerException(String.format("Build failed for %s", repo.getName()));
     }
@@ -285,8 +305,8 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
 
   private void runAntBuild(File repo, String jdkPath) throws IOException, InterruptedException {
     String antCommand = IS_WINDOWS ? "ant.bat" : "ant";
-    currentCommandExecuted = antCommand; // Ant default target
-    ProcessBuilder processBuilder = new ProcessBuilder(antCommand); 
+    currentCommandExecuted = antCommand + " -verbose";
+    ProcessBuilder processBuilder = new ProcessBuilder(antCommand, "-verbose");
     
     processBuilder.directory(repo);
     processBuilder.redirectErrorStream(true);
@@ -312,7 +332,7 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
 
     int exitCode = process.waitFor();
     if (exitCode == 0) {
-      log.debug("Ant build successful for {}", repo.getName());
+      log.info("Ant build successful for {}", repo.getName());
     } else {
       throw new DepViewerException(String.format("Ant build failed for %s", repo.getName()));
     }

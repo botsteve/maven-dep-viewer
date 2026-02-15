@@ -15,13 +15,37 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import com.botsteve.mavendepsearcher.model.DependencyNode;
+import com.botsteve.mavendepsearcher.model.ProjectType;
 
 @Slf4j
 public class DependencyAnalyzerService {
 
   private static final Map<String, DependencyNode> moduleToDependencyNode = new HashMap<>();
 
+  /**
+   * Detects the project type and delegates to the appropriate analyzer.
+   */
   public static Set<DependencyNode> getDependencies(String projectDir) throws Exception {
+    ProjectType projectType = ProjectType.detect(new File(projectDir));
+    log.info("Detected project type: {} for directory: {}", projectType, projectDir);
+
+    return switch (projectType) {
+      case MAVEN -> getMavenDependencies(projectDir);
+      case GRADLE -> GradleDependencyAnalyzerService.getDependencies(projectDir);
+      default -> throw new com.botsteve.mavendepsearcher.exception.DepViewerException(
+          "No recognizable build file found (pom.xml, build.gradle, settings.gradle). " +
+          "Please open the root directory of a Maven or Gradle project.");
+    };
+  }
+
+  /**
+   * Returns the detected project type for the given directory.
+   */
+  public static ProjectType getProjectType(String projectDir) {
+    return ProjectType.detect(new File(projectDir));
+  }
+
+  private static Set<DependencyNode> getMavenDependencies(String projectDir) throws Exception {
     List<String> modules = getModules(projectDir);
     ObjectMapper objectMapper = new ObjectMapper();
     var rootDependencies = objectMapper.readValue(runMavenDependencyTree(projectDir, ""), DependencyNode.class);
