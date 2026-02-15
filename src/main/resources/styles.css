@@ -1,0 +1,51 @@
+/* Default (Light) Theme */
+.root {
+    -fx-base: #f0f0f0;
+    -fx-control-inner-background: #ffffff;
+    -fx-background: #f0f0f0;
+}
+
+/* Dark Theme */
+.root.dark-mode {
+    -fx-base: #2b2b2b;
+    -fx-control-inner-background: #1e1e1e;
+    -fx-background: #2b2b2b;
+    -fx-text-fill: #e0e0e0;
+}
+
+.root.dark-mode .label {
+    -fx-text-fill: #e0e0e0;
+}
+
+.root.dark-mode .table-view {
+    -fx-background-color: #1e1e1e;
+}
+
+.root.dark-mode .table-view .column-header-background {
+    -fx-background-color: #333333;
+}
+
+.root.dark-mode .table-view .column-header, .root.dark-mode .table-view .filler {
+    -fx-background-color: transparent;
+}
+
+.root.dark-mode .button {
+    -fx-background-color: #404040;
+    -fx-text-fill: #ffffff;
+}
+
+.root.dark-mode .button:hover {
+    -fx-background-color: #505050;
+}
+
+.root.dark-mode .menu-bar {
+    -fx-background-color: #333333;
+}
+
+.root.dark-mode .menu-item:hover {
+    -fx-background-color: #404040;
+}
+
+.root.dark-mode .context-menu {
+    -fx-background-color: #333333;
+}
