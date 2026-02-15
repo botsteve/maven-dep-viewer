@@ -31,15 +31,19 @@ import javafx.concurrent.Task;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 import com.botsteve.mavendepsearcher.exception.DepViewerException;
 
 @Data
+@EqualsAndHashCode(callSuper = false)
 @Slf4j
 public class BuildRepositoriesTask extends Task<Map<String, String>> {
 
-  private static final String[] GRADLE_COMMAND = {"./gradlew", "clean", "build"};
-  private static final String[] GRADLE_STOP_COMMAND = {"./gradlew", "--stop"};
+  private static final boolean IS_WINDOWS = System.getProperty("os.name").toLowerCase().contains("win");
+  private static final String GRADLE_WRAPPER = IS_WINDOWS ? "gradlew.bat" : "./gradlew";
+  private static final String[] GRADLE_COMMAND = {GRADLE_WRAPPER, "clean", "build"};
+  private static final String[] GRADLE_STOP_COMMAND = {GRADLE_WRAPPER, "--stop"};
   private static final String MAVEN_OPTS = "-Dmaven.compiler.fork=true -DargLine=\"-Xmx2g\"";
   private static final String JAVA_HOME = "JAVA_HOME";
   public static final String RETRY_WITH_LOWER_VERSION = "Failed to build using java version {}, retry with lower version";
@@ -265,8 +269,8 @@ public class BuildRepositoriesTask extends Task<Map<String, String>> {
           }
         }
       }
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to change permissions", e);
+    } catch (Exception e) {
+      log.warn("Failed to change permissions for {}: {}", directory.getAbsolutePath(), e.getMessage());
     }
   }
 }

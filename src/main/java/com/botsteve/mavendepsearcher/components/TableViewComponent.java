@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.Set;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
-import javafx.collections.SetChangeListener;
 import javafx.geometry.Pos;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
@@ -62,6 +61,22 @@ public class TableViewComponent {
     return !dependencyText.toLowerCase().contains(filterText.toLowerCase());
   }
 
+  public void setAllDependencies(ObservableSet<DependencyNode> allDependencies) {
+    this.allDependencies = allDependencies;
+    for (DependencyNode node : allDependencies) {
+      if (node.isSelected()) {
+        selectedDependencies.add(node);
+      }
+      node.selectedProperty().addListener((obs, wasSelected, isNowSelected) -> {
+        if (isNowSelected) {
+          selectedDependencies.add(node);
+        } else {
+          selectedDependencies.remove(node);
+        }
+      });
+    }
+  }
+
   public void updateTreeView(Set<DependencyNode> dependencies) {
     TreeItem<DependencyNode> rootItem = createRootTreeItem();
     populateTreeItems(rootItem, dependencies);
@@ -81,19 +96,8 @@ public class TableViewComponent {
 
   private TreeItem<DependencyNode> createTreeItem(DependencyNode node) {
     TreeItem<DependencyNode> treeItem = new TreeItem<>(node);
-    addSelectionListener(node);
     addChildrenToTreeItem(node, treeItem);
     return treeItem;
-  }
-
-  private void addSelectionListener(DependencyNode node) {
-    node.selectedProperty().addListener((obs, wasSelected, isNowSelected) -> {
-      if (isNowSelected) {
-        selectedDependencies.add(node);
-      } else {
-        selectedDependencies.remove(node);
-      }
-    });
   }
 
   private void addChildrenToTreeItem(DependencyNode node, TreeItem<DependencyNode> treeItem) {

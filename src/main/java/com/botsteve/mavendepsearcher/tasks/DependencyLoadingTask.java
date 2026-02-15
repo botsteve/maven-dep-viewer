@@ -2,8 +2,6 @@ package com.botsteve.mavendepsearcher.tasks;
 
 import static com.botsteve.mavendepsearcher.utils.FxUtils.getErrorAlertAndCloseProgressBar;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Set;
 import javafx.application.Platform;
 import javafx.concurrent.Task;

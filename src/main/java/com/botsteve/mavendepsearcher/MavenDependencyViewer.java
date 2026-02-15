@@ -16,13 +16,14 @@ import static com.botsteve.mavendepsearcher.views.LoginViewer.LOGIN_VIEWER;
 public class MavenDependencyViewer extends Application {
 
 
+    private ScheduledExecutorService scheduler;
+
     @Override
     public void start(Stage primaryStage) {
         LOGIN_VIEWER.showPasswordDialog(primaryStage);
         createSettingsFile();
-        try (ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1)) {
-            scheduler.scheduleAtFixedRate(MemoryLogger::logMemoryUsage, 0, 10, TimeUnit.SECONDS);
-        }
+        scheduler = Executors.newScheduledThreadPool(1);
+        scheduler.scheduleAtFixedRate(MemoryLogger::logMemoryUsage, 0, 10, TimeUnit.SECONDS);
 
     }
 
@@ -36,6 +37,9 @@ public class MavenDependencyViewer extends Application {
     }
 
     private void shutdown() {
+        if (scheduler != null && !scheduler.isShutdown()) {
+            scheduler.shutdownNow();
+        }
         // Add any other cleanup code here
         Platform.exit();
         System.exit(0);

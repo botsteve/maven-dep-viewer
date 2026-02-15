@@ -12,6 +12,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -215,48 +216,28 @@ public class Utils {
     }
 
     public static String getRepositoriesPath() throws URISyntaxException {
-        String jarPath = Utils.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
-
-        log.debug("Original Jarpath: {}", jarPath);
-
-        // Adjust the path for Windows if it starts with a slash and contains a drive letter
-        if (jarPath.startsWith("/") && jarPath.length() > 2 && jarPath.charAt(2) == ':') {
-            jarPath = jarPath.substring(1);
-        }
-
-        log.debug("Adjusted Jarpath for Windows: {}", jarPath);
-
-        // Check if jarPath ends with .jar and adjust the path to point to the directory
-        if (jarPath.endsWith(".jar")) {
-            int lastSlashIndex = jarPath.lastIndexOf("/");
-            if (lastSlashIndex != -1) {
-                jarPath = jarPath.substring(0, lastSlashIndex + 1);
+        try {
+            Path codeSourcePath = Paths.get(Utils.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            
+            // If running from a JAR, codeSourcePath is the JAR file. Parent is the directory.
+            // If running from IDE (classes), codeSourcePath is the classes directory. Parent is target/ (usually).
+            // The original logic seemed to want 'downloaded_repos' next to the JAR or in the project root?
+            // "if jarPath.endsWith(".jar") ... jarPath = jarPath.substring(0, lastSlashIndex + 1);" -> implies next to JAR.
+            
+            Path repoDir;
+            if (Files.isRegularFile(codeSourcePath)) { // It's a JAR or file
+                 repoDir = codeSourcePath.getParent().resolve(DOWNLOADED_REPOS);
+            } else { // It's a directory (classes)
+                 repoDir = codeSourcePath.resolve(DOWNLOADED_REPOS);
             }
+            
+            Path finalPath = repoDir.normalize();
+            
+            log.debug("Resolved Repositories Path: {}", finalPath);
+            return finalPath.toString() + File.separator;
+        } catch (Exception e) {
+             throw new RuntimeException("Failed to resolve repositories path", e);
         }
-
-        log.debug("Trimmed Jarpath: {}", jarPath);
-
-        // Convert the URI path to a platform-specific path
-        Path jarDirPath = Paths.get(jarPath);
-
-        // Ensure the path is absolute
-        if (!jarDirPath.isAbsolute()) {
-            jarDirPath = jarDirPath.toAbsolutePath();
-        }
-
-        log.debug("Absolute Path: {}", jarDirPath);
-
-        // Manually concatenate the downloaded_repos directory
-        Path combinedPath = jarDirPath.resolve(DOWNLOADED_REPOS);
-
-        log.debug("Combined Path: {}", combinedPath);
-
-        // Normalize the path to remove redundant elements
-        Path finalPath = combinedPath.normalize();
-
-        log.debug("Final Path: {}", finalPath);
-
-        return finalPath.toString() + File.separator;
     }
 
     private static boolean isValidJdkHome(File jdkHome) {

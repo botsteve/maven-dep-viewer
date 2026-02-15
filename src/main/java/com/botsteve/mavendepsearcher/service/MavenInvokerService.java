@@ -1,9 +1,6 @@
 package com.botsteve.mavendepsearcher.service;
 
 import java.io.File;
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
-import java.lang.management.MemoryUsage;
 import java.util.Arrays;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
@@ -26,7 +23,11 @@ public class MavenInvokerService {
     // Set Maven executable and home
     Invoker invoker = new DefaultInvoker();
     invoker.setMavenHome(new File(System.getenv("MAVEN_HOME")));
-    invoker.setMavenExecutable(new File(System.getenv("MAVEN_HOME"), "bin/mvn"));
+    
+    String mavenHome = System.getenv("MAVEN_HOME");
+    String os = System.getProperty("os.name").toLowerCase();
+    String mvnExecutable = os.contains("win") ? "bin/mvn.cmd" : "bin/mvn";
+    invoker.setMavenExecutable(new File(mavenHome, mvnExecutable));
 
     InvocationRequest request = new DefaultInvocationRequest();
     request.setPomFile(new File(projectDir, moduleDir + "/pom.xml"));
