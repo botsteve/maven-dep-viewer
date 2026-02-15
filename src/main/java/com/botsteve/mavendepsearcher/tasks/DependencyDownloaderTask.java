@@ -5,18 +5,14 @@ import static com.botsteve.mavendepsearcher.utils.FxUtils.getErrorAlertAndCloseP
 import static com.botsteve.mavendepsearcher.utils.FxUtils.showAlert;
 import static com.botsteve.mavendepsearcher.utils.FxUtils.updateProgressBarAndLabel;
 import static com.botsteve.mavendepsearcher.utils.ProxyUtil.configureProxyIfEnvAvailable;
-import static com.botsteve.mavendepsearcher.utils.ProxyUtil.getProxyExceptionMessage;
 import static com.botsteve.mavendepsearcher.utils.ProxyUtil.getRepoNameFromUrl;
 import static com.botsteve.mavendepsearcher.utils.Utils.getRepositoriesPath;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 import javafx.application.Platform;
@@ -26,7 +22,6 @@ import javafx.scene.control.ProgressBar;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.transport.TagOpt;
 import com.botsteve.mavendepsearcher.utils.ForceDeleteUtil;
 
@@ -38,7 +33,6 @@ public class DependencyDownloaderTask extends Task<Map<String, String>> {
   private final ProgressBar progressBar;
   private final Label progressLabel;
   private final boolean cleanUp;
-  private Map.Entry<String, String> currentRepo;
   private final java.util.concurrent.ConcurrentHashMap<String, String> repoToCheckoutTag = new java.util.concurrent.ConcurrentHashMap<>();
 
 
@@ -123,7 +117,7 @@ public class DependencyDownloaderTask extends Task<Map<String, String>> {
     return repoToCheckoutTag;
   }
 
-  private void cleanUpDownloadedDependencies() throws IOException, URISyntaxException {
+  private void cleanUpDownloadedDependencies() throws IOException {
     Path dir = Paths.get(getRepositoriesPath());
     if (!Files.exists(dir)) return;
 

@@ -1,51 +1,243 @@
-/* Default (Light) Theme */
+/* Modern/Professional Light Theme */
 .root {
-    -fx-base: #f0f0f0;
-    -fx-control-inner-background: #ffffff;
-    -fx-background: #f0f0f0;
+    -fx-font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+    -fx-font-size: 14px;
+    -fx-background-color: #f4f6f8;
+    /* Light gray-blue background */
+    -fx-text-fill: #2c3e50;
+    -fx-accent: #3498db;
+    /* Primary blue */
+    -fx-focus-color: #3498db;
+    -fx-faint-focus-color: transparent;
 }
 
-/* Dark Theme */
+/* Button Styling */
+.button {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #2c3e50;
+    -fx-border-color: #dcdde1;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 6px 12px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.05), 3, 0, 0, 1);
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: #f1f2f6;
+    -fx-border-color: #bdc3c7;
+}
+
+.button:pressed {
+    -fx-background-color: #e2e6ea;
+    -fx-effect: none;
+    -fx-translate-y: 1;
+    /* Slight press effect */
+}
+
+/* TreeTableView Styling */
+.tree-table-view {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-selection-bar: #e1f0fa;
+    /* Light blue selection */
+    -fx-selection-bar-non-focused: #ecf3f8;
+    -fx-border-color: #dcdde1;
+    -fx-border-radius: 4px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.02), 5, 0, 0, 2);
+}
+
+.tree-table-view .column-header-background {
+    -fx-background-color: #ecf0f1;
+    -fx-background-insets: 0;
+    -fx-padding: 0 0 1px 0;
+    /* Border separation */
+}
+
+.tree-table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-size: 35px;
+    /* Header Height */
+    -fx-border-color: transparent transparent #bdc3c7 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.tree-table-view .column-header .label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #34495e;
+}
+
+.tree-table-row-cell {
+    -fx-background-insets: 0;
+    -fx-padding: 2px 0;
+    -fx-border-color: transparent transparent #f0f2f5 transparent;
+    /* Subtle row separator */
+    -fx-border-width: 0 0 1px 0;
+}
+
+.tree-table-row-cell:odd {
+    -fx-background-color: #fdfdfd;
+}
+
+.tree-table-row-cell:even {
+    -fx-background-color: #ffffff;
+}
+
+.tree-table-row-cell:filled:selected {
+    -fx-background-color: -fx-selection-bar;
+    -fx-table-cell-border-color: transparent;
+}
+
+.tree-table-row-cell:filled:selected .text {
+    -fx-fill: #2980b9;
+    /* Darker blue text on selection */
+}
+
+/* TextField Styling */
+.text-field {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dcdde1;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 6px;
+    -fx-prompt-text-fill: #95a5a6;
+}
+
+.text-field:focused {
+    -fx-border-color: -fx-focus-color;
+    -fx-effect: dropshadow(three-pass-box, rgba(52, 152, 219, 0.2), 5, 0, 0, 0);
+}
+
+/* ProgressBar */
+.progress-bar .track {
+    -fx-background-color: #ecf0f1;
+    -fx-background-radius: 4px;
+}
+
+.progress-bar .bar {
+    -fx-background-color: -fx-accent;
+    -fx-background-radius: 4px;
+    -fx-padding: 4px;
+}
+
+/* CheckBox */
+.check-box .box {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #bdc3c7;
+    -fx-border-radius: 3px;
+}
+
+.check-box:selected .mark {
+    -fx-background-color: -fx-accent;
+}
+
+.check-box:selected .box {
+    -fx-background-color: #ffffff;
+    -fx-border-color: -fx-accent;
+}
+
+/* Toolbar */
+.tool-bar {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent transparent #dcdde1 transparent;
+    -fx-border-width: 0 0 1px 0;
+    -fx-padding: 10px;
+    -fx-spacing: 10px;
+}
+
+/* Dark Theme Overrides */
 .root.dark-mode {
     -fx-base: #2b2b2b;
+    -fx-background-color: #2b2b2b;
     -fx-control-inner-background: #1e1e1e;
-    -fx-background: #2b2b2b;
     -fx-text-fill: #e0e0e0;
+    -fx-accent: #5dade2;
+    /* Lighter blue for dark mode */
 }
 
 .root.dark-mode .label {
     -fx-text-fill: #e0e0e0;
 }
 
-.root.dark-mode .table-view {
-    -fx-background-color: #1e1e1e;
+.root.dark-mode .text-field {
+    -fx-background-color: #383838;
+    -fx-border-color: #555555;
+    -fx-text-fill: white;
 }
 
-.root.dark-mode .table-view .column-header-background {
-    -fx-background-color: #333333;
-}
-
-.root.dark-mode .table-view .column-header, .root.dark-mode .table-view .filler {
-    -fx-background-color: transparent;
+.root.dark-mode .text-field:focused {
+    -fx-border-color: #5dade2;
 }
 
 .root.dark-mode .button {
     -fx-background-color: #404040;
     -fx-text-fill: #ffffff;
+    -fx-border-color: #555555;
+    -fx-effect: none;
 }
 
 .root.dark-mode .button:hover {
     -fx-background-color: #505050;
+    -fx-border-color: #777777;
+}
+
+.root.dark-mode .button:pressed {
+    -fx-background-color: #303030;
+}
+
+.root.dark-mode .tree-table-view {
+    -fx-background-color: #1e1e1e;
+    -fx-border-color: #444444;
+    -fx-selection-bar: #34495e;
+}
+
+.root.dark-mode .tree-table-view .column-header-background {
+    -fx-background-color: #333333;
+}
+
+.root.dark-mode .tree-table-view .column-header .label {
+    -fx-text-fill: #ecf0f1;
+}
+
+.root.dark-mode .tree-table-row-cell {
+    -fx-border-color: transparent transparent #2a2a2a transparent;
+}
+
+.root.dark-mode .tree-table-row-cell:odd {
+    -fx-background-color: #262626;
+}
+
+.root.dark-mode .tree-table-row-cell:even {
+    -fx-background-color: #1e1e1e;
+}
+
+.root.dark-mode .tree-table-row-cell:filled:selected {
+    -fx-background-color: #0d47a1;
+}
+
+.root.dark-mode .tree-table-row-cell:filled:selected .text {
+    -fx-fill: white;
+}
+
+.root.dark-mode .tool-bar {
+    -fx-background-color: #333333;
+    -fx-border-color: transparent transparent #444444 transparent;
+}
+
+.root.dark-mode .check-box .box {
+    -fx-background-color: #404040;
+    -fx-border-color: #555555;
 }
 
 .root.dark-mode .menu-bar {
     -fx-background-color: #333333;
 }
 
-.root.dark-mode .menu-item:hover {
-    -fx-background-color: #404040;
-}
-
 .root.dark-mode .context-menu {
     -fx-background-color: #333333;
+    -fx-border-color: #555555;
+}
+
+.root.dark-mode .menu-item:hover {
+    -fx-background-color: #404040;
 }

@@ -1,11 +1,8 @@
 package com.botsteve.mavendepsearcher.components;
 
-import javafx.beans.binding.Bindings;
-import javafx.beans.binding.DoubleBinding;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.scene.control.TreeTableColumn;
 import javafx.scene.control.cell.CheckBoxTreeTableCell;
-import javafx.scene.input.MouseEvent;
 import lombok.Data;
 import com.botsteve.mavendepsearcher.model.DependencyNode;
 
