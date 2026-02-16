@@ -1,4 +1,4 @@
-# Dependencies Viewer
+# Dependency Viewer
 
 A powerful JavaFX desktop application for analyzing **Maven** and **Gradle** project dependencies, resolving source code repositories, and rebuilding dependencies from source. Designed to help developers inspect dependency trees, fetch source code (Git), and compile projects using the correct JDK versions.
 
