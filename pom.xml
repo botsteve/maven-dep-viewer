@@ -10,6 +10,12 @@
     <name>maven-dep-searcher</name>
     <url>http://maven.apache.org</url>
 
+    <scm>
+        <connection>scm:git:git://github.com/botsteve/dependency-viewer.git</connection>
+        <developerConnection>scm:git:ssh://github.com:botsteve/dependency-viewer.git</developerConnection>
+        <url>http://github.com/botsteve/dependency-viewer/tree/master</url>
+    </scm>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>21</maven.compiler.source>
